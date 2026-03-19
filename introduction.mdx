@@ -5,7 +5,7 @@ description: "Server-side Solana wallet infrastructure for AI agents"
 
 Knot is a server-side Solana wallet infrastructure designed specifically for AI agents. It enables autonomous agents to hold funds, sign transactions, and interact with DeFi protocols without human intervention — and without ever handling a private key.
 
-Agents authenticate via API using a passwordless email OTP flow. They call action-based endpoints like `POST /actions/trade` or `POST /actions/transfer-solana` rather than constructing and signing raw transactions themselves. Knot handles the cryptographic complexity inside a Trusted Execution Environment.
+Agents authenticate via API using a passwordless email OTP flow. They call action-based endpoints like `POST /wallets/me/actions/trade` or `POST /wallets/me/actions/transfer` rather than constructing and signing raw transactions themselves. Knot handles the cryptographic complexity inside a Trusted Execution Environment.
 
 ## Key features
 
@@ -14,7 +14,7 @@ Agents authenticate via API using a passwordless email OTP flow. They call actio
     Private keys are generated and stored inside a Trusted Execution Environment (TEE). They never leave the secure enclave — not even platform operators can retrieve them.
   </Card>
   <Card title="Action-based API" icon="bolt">
-    Agents call semantic endpoints instead of building transactions. `POST /actions/trade`, `POST /actions/transfer-solana`, and similar endpoints abstract away transaction construction entirely.
+    Agents call semantic endpoints instead of building transactions. `POST /wallets/me/actions/trade`, `POST /wallets/me/actions/transfer`, and similar endpoints abstract away transaction construction entirely.
   </Card>
   <Card title="Built-in policy engine" icon="shield">
     Every agent has configurable spending limits, daily caps, and recipient whitelists. The policy engine enforces these rules before any transaction reaches the signing step.
