@@ -1,0 +1,90 @@
+---
+title: "Token lookup"
+description: "Look up token metadata by symbol or mint address"
+api: "GET /tokens/{query}"
+---
+
+Resolves a token symbol or mint address to its full metadata. Use this endpoint to verify a token before including it in a transfer or trade request.
+
+<Note>
+  Requires authentication via Bearer token.
+</Note>
+
+## Path parameters
+
+<ParamField path="query" type="string" required>
+  Token symbol (e.g., `USDC`) or full mint address (e.g., `EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v`).
+</ParamField>
+
+## Response
+
+<ResponseField name="status" type="boolean">
+  `true` when the token is found.
+</ResponseField>
+
+<ResponseField name="data" type="object">
+  <Expandable title="properties">
+    <ResponseField name="mint" type="string">
+      Token mint address.
+    </ResponseField>
+    <ResponseField name="symbol" type="string">
+      Token symbol.
+    </ResponseField>
+    <ResponseField name="name" type="string">
+      Full token name.
+    </ResponseField>
+    <ResponseField name="decimals" type="number">
+      Number of decimal places for this token.
+    </ResponseField>
+    <ResponseField name="verified" type="boolean">
+      `true` if the token is from a verified source.
+    </ResponseField>
+    <ResponseField name="source" type="string">
+      Data source used to resolve the token metadata. See the source table below.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+### Source values
+
+| Source | Description |
+|--------|-------------|
+| `local` | Token from the built-in verified directory |
+| `jupiter` | Token resolved via the Jupiter API |
+| `helius` | Token metadata resolved via the Helius DAS API |
+
+## Errors
+
+| Status | Description |
+|--------|-------------|
+| `401` | Missing or invalid Bearer token |
+| `404` | Token not found |
+| `429` | Rate limit exceeded |
+
+<RequestExample>
+```bash cURL (by symbol)
+curl https://api.useknot.xyz/tokens/USDC \
+  -H "Authorization: Bearer <token>"
+```
+
+```bash cURL (by mint)
+curl https://api.useknot.xyz/tokens/EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v \
+  -H "Authorization: Bearer <token>"
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200
+{
+  "status": true,
+  "data": {
+    "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+    "symbol": "USDC",
+    "name": "USD Coin",
+    "decimals": 6,
+    "verified": true,
+    "source": "local"
+  }
+}
+```
+</ResponseExample>

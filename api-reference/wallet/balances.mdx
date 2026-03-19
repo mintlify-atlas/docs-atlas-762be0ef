@@ -1,0 +1,98 @@
+---
+title: "Get balances"
+description: "Fetch all token balances for the agent's wallet"
+api: "GET /wallets/me/balances"
+---
+
+Returns the current SOL balance, all SPL token balances, and the total USD value of the agent's wallet.
+
+<Note>
+  Requires authentication via Bearer token.
+</Note>
+
+## Response
+
+<ResponseField name="status" type="boolean">
+  `true` when the request succeeds.
+</ResponseField>
+
+<ResponseField name="data" type="object">
+  <Expandable title="properties">
+    <ResponseField name="solanaAddress" type="string">
+      The agent's Solana wallet address.
+    </ResponseField>
+    <ResponseField name="sol" type="object">
+      Native SOL balance details.
+      <Expandable title="properties">
+        <ResponseField name="balance" type="number">
+          SOL balance.
+        </ResponseField>
+        <ResponseField name="usdValue" type="number">
+          USD equivalent of the SOL balance.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="tokens" type="array">
+      Array of SPL token balances held by the wallet.
+      <Expandable title="item properties">
+        <ResponseField name="mint" type="string">
+          Token mint address.
+        </ResponseField>
+        <ResponseField name="symbol" type="string">
+          Token symbol (e.g., `USDC`, `BONK`).
+        </ResponseField>
+        <ResponseField name="balance" type="number">
+          Token balance.
+        </ResponseField>
+        <ResponseField name="decimals" type="number">
+          Number of decimal places for this token.
+        </ResponseField>
+        <ResponseField name="usdValue" type="number">
+          USD equivalent of the token balance.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="totalUsdValue" type="number">
+      Combined USD value of SOL and all SPL token holdings.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Errors
+
+| Status | Description |
+|--------|-------------|
+| `401` | Missing or invalid Bearer token |
+| `429` | Rate limit exceeded |
+
+<RequestExample>
+```bash cURL
+curl https://api.useknot.xyz/wallets/me/balances \
+  -H "Authorization: Bearer <token>"
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200
+{
+  "status": true,
+  "data": {
+    "solanaAddress": "7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU",
+    "sol": {
+      "balance": 1.5,
+      "usdValue": 129.00
+    },
+    "tokens": [
+      {
+        "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+        "symbol": "USDC",
+        "balance": 250.00,
+        "decimals": 6,
+        "usdValue": 250.00
+      }
+    ],
+    "totalUsdValue": 379.00
+  }
+}
+```
+</ResponseExample>

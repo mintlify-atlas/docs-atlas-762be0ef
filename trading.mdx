@@ -1,0 +1,185 @@
+---
+title: "Trading"
+description: "Swap tokens using the Jupiter DEX aggregator"
+---
+
+You can swap any token pair through the Jupiter aggregator. Jupiter routes orders across Solana's DEXes to find the best price, and includes MEV protection to prevent front-running.
+
+## Execute a swap
+
+```bash
+curl -X POST https://api.useknot.xyz/wallets/me/actions/trade \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "from": "USDC",
+    "to": "SOL",
+    "amount": 50,
+    "slippageBps": 50
+  }'
+```
+
+## Request parameters
+
+<ParamField body="from" type="string" required>
+  The source token. Use a common symbol (e.g., `USDC`) or the token's Solana mint address.
+</ParamField>
+
+<ParamField body="to" type="string" required>
+  The destination token. Use a common symbol or mint address.
+</ParamField>
+
+<ParamField body="amount" type="number" required>
+  The amount of the source token to swap.
+</ParamField>
+
+<ParamField body="slippageBps" type="number" default="50">
+  Slippage tolerance in basis points. Defaults to `50` (0.5%). See [slippage guidance](#slippage) below.
+</ParamField>
+
+## Response
+
+```json
+{
+  "status": true,
+  "data": {
+    "signature": "4kLmN9xR...",
+    "explorerUrl": "https://solscan.io/tx/4kLmN9xR...",
+    "inputAmount": "50 USDC",
+    "outputAmount": "0.581 SOL",
+    "priceImpact": "0.01%",
+    "route": ["Raydium", "Orca"]
+  }
+}
+```
+
+### Response fields
+
+<ResponseField name="data" type="object">
+  <Expandable title="properties" defaultOpen>
+    <ResponseField name="signature" type="string">
+      The on-chain transaction signature.
+    </ResponseField>
+    <ResponseField name="explorerUrl" type="string">
+      Link to view the transaction on Solscan.
+    </ResponseField>
+    <ResponseField name="inputAmount" type="string">
+      The amount spent, formatted with the source token symbol (e.g., `50 USDC`).
+    </ResponseField>
+    <ResponseField name="outputAmount" type="string">
+      The amount received, formatted with the destination token symbol (e.g., `0.581 SOL`).
+    </ResponseField>
+    <ResponseField name="priceImpact" type="string">
+      The estimated price impact of the swap as a percentage.
+    </ResponseField>
+    <ResponseField name="route" type="array">
+      The list of DEXes used to execute the swap. Jupiter may split orders across multiple venues for better pricing.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Slippage
+
+Slippage tolerance protects you against price movement between the time the order is submitted and when it lands on-chain. If the final price moves beyond the tolerance, the transaction is rejected rather than executed at an unfavorable price.
+
+| Basis points | Percentage | Recommended use |
+|-------------|------------|----------------|
+| 10 | 0.1% | Stable pairs (USDC/USDT) |
+| 50 | 0.5% | Standard swaps |
+| 100 | 1.0% | Volatile tokens |
+| 300 | 3.0% | Low-liquidity tokens |
+
+<Warning>
+  Setting slippage too low may cause transactions to fail during volatile conditions. Setting it too high may result in poor execution prices.
+</Warning>
+
+## Supported tokens
+
+Jupiter supports thousands of tokens on Solana. You can identify tokens in two ways:
+
+### By symbol
+
+Common symbols are recognized automatically:
+
+```
+SOL, USDC, USDT, JUP, BONK, WIF, RAY, ORCA
+```
+
+### By mint address
+
+For any token not covered by a common symbol, use its Solana mint address:
+
+```json
+{
+  "from": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+  "to": "So11111111111111111111111111111111111111112",
+  "amount": 100,
+  "slippageBps": 50
+}
+```
+
+## Jupiter integration and MEV protection
+
+Knot routes all swaps through Jupiter, Solana's leading DEX aggregator. Jupiter:
+
+- Splits orders across multiple liquidity pools (Raydium, Orca, and others) to minimize price impact
+- Uses smart routing to find the optimal path for any token pair
+- Includes MEV protection to prevent sandwich attacks on your transactions
+
+The `route` field in the response shows which DEXes were used for a given swap.
+
+## Common trade scenarios
+
+<AccordionGroup>
+  <Accordion title="Swap stablecoins">
+    Use tight slippage for stablecoin-to-stablecoin swaps since price variation is minimal:
+
+    ```bash
+    curl -X POST https://api.useknot.xyz/wallets/me/actions/trade \
+      -H "Authorization: Bearer <token>" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "from": "USDC",
+        "to": "USDT",
+        "amount": 500,
+        "slippageBps": 10
+      }'
+    ```
+  </Accordion>
+  <Accordion title="Buy a volatile token">
+    Use higher slippage when trading low-liquidity or volatile tokens to avoid transaction failures:
+
+    ```bash
+    curl -X POST https://api.useknot.xyz/wallets/me/actions/trade \
+      -H "Authorization: Bearer <token>" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "from": "SOL",
+        "to": "BONK",
+        "amount": 1,
+        "slippageBps": 300
+      }'
+    ```
+  </Accordion>
+  <Accordion title="Trade using mint addresses">
+    Specify tokens by their on-chain mint address when their symbol is not recognized:
+
+    ```bash
+    curl -X POST https://api.useknot.xyz/wallets/me/actions/trade \
+      -H "Authorization: Bearer <token>" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "from": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+        "to": "So11111111111111111111111111111111111111112",
+        "amount": 100,
+        "slippageBps": 50
+      }'
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Policy constraints
+
+<Tip>
+  Trading must be enabled in your agent's policy. If you receive a `403` error when attempting a swap, check that trading is allowed in your policy settings.
+</Tip>

@@ -1,0 +1,62 @@
+---
+title: "Validate token"
+description: "Check if the current session token is still valid"
+api: "POST /connect/validate"
+---
+
+Use this endpoint to confirm that a JWT token is still active before making other API calls. It returns the agent's account details along with the token expiration time.
+
+<Note>
+  Requires authentication via Bearer token.
+</Note>
+
+## Response
+
+<ResponseField name="status" type="boolean">
+  `true` when the request succeeds.
+</ResponseField>
+
+<ResponseField name="data" type="object">
+  <Expandable title="properties">
+    <ResponseField name="valid" type="boolean">
+      `true` if the token is currently valid.
+    </ResponseField>
+    <ResponseField name="email" type="string">
+      The agent's email address.
+    </ResponseField>
+    <ResponseField name="solanaAddress" type="string">
+      The agent's Solana wallet address.
+    </ResponseField>
+    <ResponseField name="expiresAt" type="string">
+      Token expiration timestamp in ISO 8601 format.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Errors
+
+| Status | Description |
+|--------|-------------|
+| `401` | Missing or invalid Bearer token |
+| `429` | Rate limit exceeded |
+
+<RequestExample>
+```bash cURL
+curl -X POST https://api.useknot.xyz/connect/validate \
+  -H "Authorization: Bearer <token>"
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200
+{
+  "status": true,
+  "data": {
+    "valid": true,
+    "email": "agent@example.com",
+    "solanaAddress": "7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU",
+    "expiresAt": "2025-01-15T12:00:00.000Z"
+  }
+}
+```
+</ResponseExample>

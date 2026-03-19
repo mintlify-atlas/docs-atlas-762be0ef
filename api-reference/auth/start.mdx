@@ -1,0 +1,67 @@
+---
+title: "Start authentication"
+description: "Initiate OTP authentication by sending a code to the agent's email"
+api: "POST /connect/start"
+---
+
+This is the first step of the two-step authentication flow. Send the agent's email address to receive a one-time password (OTP) code by email.
+
+<Info>
+This endpoint does not require authentication. No `Authorization` header is needed.
+</Info>
+
+## Request body
+
+<ParamField body="email" type="string" required>
+  Email address for the agent. The OTP code is sent to this address.
+</ParamField>
+
+## Response
+
+<ResponseField name="status" type="boolean">
+  `true` when the request succeeds.
+</ResponseField>
+
+<ResponseField name="statusCode" type="number">
+  HTTP status code.
+</ResponseField>
+
+<ResponseField name="message" type="string">
+  Human-readable result message.
+</ResponseField>
+
+<ResponseField name="data" type="object">
+  <Expandable title="properties">
+    <ResponseField name="otpId" type="string">
+      Unique identifier for this OTP request. Pass this value to the [complete authentication](/api-reference/auth/complete) endpoint along with the OTP code.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Errors
+
+| Status | Description |
+|--------|-------------|
+| `400` | Invalid or missing email address |
+| `429` | Rate limit exceeded |
+
+<RequestExample>
+```bash cURL
+curl -X POST https://api.useknot.xyz/connect/start \
+  -H "Content-Type: application/json" \
+  -d '{"email": "agent@example.com"}'
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200
+{
+  "status": true,
+  "statusCode": 200,
+  "message": "OTP sent successfully.",
+  "data": {
+    "otpId": "550e8400-e29b-41d4-a716-446655440000"
+  }
+}
+```
+</ResponseExample>

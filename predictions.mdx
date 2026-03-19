@@ -1,0 +1,375 @@
+---
+title: "Prediction markets"
+description: "Trade prediction market contracts on Kalshi"
+---
+
+You can trade prediction market contracts on Kalshi, taking positions on real-world events ranging from financial markets to sports outcomes.
+
+<Note>
+  Prediction markets use a pay-per-trade model. When you buy contracts, USDC is transferred from your wallet. When you sell, proceeds are sent directly back to your wallet as USDC.
+</Note>
+
+## How Kalshi markets work
+
+Each Kalshi market resolves to either `yes` or `no` at a defined settlement date. Contracts are priced in cents, from 1 to 99, representing the market's implied probability of the `yes` outcome (e.g., a price of `65` means the market assigns a 65% probability to `yes`). If you hold the winning side at settlement, each contract pays out $1.00.
+
+Markets are organized in a hierarchy:
+- **Series** — a topic area (e.g., Bitcoin price)
+- **Events** — a specific occurrence within a series
+- **Markets** — individual yes/no questions within an event
+
+## Browse categories
+
+View all available market categories and their associated tags:
+
+```bash
+curl https://api.useknot.xyz/predictions/categories \
+  -H "Authorization: Bearer <token>"
+```
+
+## Sports filters
+
+Get sports-specific filters including available competitions and scopes:
+
+```bash
+curl https://api.useknot.xyz/predictions/sports \
+  -H "Authorization: Bearer <token>"
+```
+
+## View markets
+
+List prediction markets with optional filters:
+
+```bash
+curl "https://api.useknot.xyz/predictions/markets?status=open&limit=20&tradeable_only=true" \
+  -H "Authorization: Bearer <token>"
+```
+
+### Query parameters
+
+<ParamField query="status" type="string">
+  Filter by market status: `unopened`, `open`, `closed`, or `settled`.
+</ParamField>
+
+<ParamField query="event_ticker" type="string">
+  Filter markets by event ticker.
+</ParamField>
+
+<ParamField query="series_ticker" type="string">
+  Filter markets by series ticker.
+</ParamField>
+
+<ParamField query="limit" type="number" default="50">
+  Maximum number of markets to return.
+</ParamField>
+
+<ParamField query="cursor" type="string">
+  Pagination cursor returned from a previous response.
+</ParamField>
+
+<ParamField query="tradeable_only" type="boolean">
+  When `true`, only markets with active liquidity are returned.
+</ParamField>
+
+### Response
+
+```json
+{
+  "status": true,
+  "data": {
+    "markets": [
+      {
+        "ticker": "KXBTC-26MAR31-T100000",
+        "eventTicker": "KXBTC",
+        "title": "Bitcoin above $100,000?",
+        "subtitle": "Will BTC be at or above $100,000 on March 31?",
+        "status": "open",
+        "yesBid": 65,
+        "yesAsk": 67,
+        "volume24h": 125000
+      }
+    ],
+    "cursor": "next-page-cursor"
+  }
+}
+```
+
+<ResponseField name="data" type="object">
+  <Expandable title="properties">
+    <ResponseField name="markets" type="array">
+      <Expandable title="market object properties">
+        <ResponseField name="ticker" type="string">
+          Unique market identifier (e.g., `KXBTC-26MAR31-T100000`). Use this as the `ticker` parameter when buying or selling.
+        </ResponseField>
+        <ResponseField name="eventTicker" type="string">
+          The event this market belongs to.
+        </ResponseField>
+        <ResponseField name="title" type="string">
+          Short market title.
+        </ResponseField>
+        <ResponseField name="subtitle" type="string">
+          Detailed description of what the market resolves on.
+        </ResponseField>
+        <ResponseField name="status" type="string">
+          Current market status: `unopened`, `open`, `closed`, or `settled`.
+        </ResponseField>
+        <ResponseField name="yesBid" type="number">
+          Best bid price for the yes side (in cents).
+        </ResponseField>
+        <ResponseField name="yesAsk" type="number">
+          Best ask price for the yes side (in cents).
+        </ResponseField>
+        <ResponseField name="volume24h" type="number">
+          24-hour trading volume in number of contracts.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="cursor" type="string">
+      Pagination cursor to pass in the next request to retrieve the following page.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Get market details
+
+Retrieve full details for a specific market by its ticker:
+
+```bash
+curl https://api.useknot.xyz/predictions/markets/KXBTC-26MAR31-T100000 \
+  -H "Authorization: Bearer <token>"
+```
+
+## Get market orderbook
+
+View the current order book for a market:
+
+```bash
+curl "https://api.useknot.xyz/predictions/markets/KXBTC-26MAR31-T100000/orderbook?depth=10" \
+  -H "Authorization: Bearer <token>"
+```
+
+## View events
+
+Events are groups of related markets. Browse open events:
+
+```bash
+curl "https://api.useknot.xyz/predictions/events?status=open&limit=20" \
+  -H "Authorization: Bearer <token>"
+```
+
+### Get event details
+
+```bash
+curl https://api.useknot.xyz/predictions/events/KXBTC \
+  -H "Authorization: Bearer <token>"
+```
+
+## View series
+
+Browse series, optionally filtered by category:
+
+```bash
+curl "https://api.useknot.xyz/predictions/series?category=Crypto&limit=100" \
+  -H "Authorization: Bearer <token>"
+```
+
+### Get series details
+
+```bash
+curl https://api.useknot.xyz/predictions/series/KXBTC \
+  -H "Authorization: Bearer <token>"
+```
+
+## View milestones
+
+Milestones represent scheduled real-world events such as games or matches:
+
+```bash
+curl "https://api.useknot.xyz/predictions/milestones?category=Sports&competition=Champions%20League&limit=50" \
+  -H "Authorization: Bearer <token>"
+```
+
+### Get milestone details
+
+```bash
+curl https://api.useknot.xyz/predictions/milestones/milestone-id \
+  -H "Authorization: Bearer <token>"
+```
+
+## Check balance
+
+View your current prediction market balance:
+
+```bash
+curl https://api.useknot.xyz/predictions/balance \
+  -H "Authorization: Bearer <token>"
+```
+
+## Buy contracts
+
+Purchase contracts on a market. USDC is transferred from your wallet to fund the purchase:
+
+```bash
+curl -X POST https://api.useknot.xyz/predictions/buy \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "ticker": "KXBTC-26MAR31-T100000",
+    "side": "yes",
+    "count": 10
+  }'
+```
+
+### Request parameters
+
+<ParamField body="ticker" type="string" required>
+  The market ticker to trade (e.g., `KXBTC-26MAR31-T100000`).
+</ParamField>
+
+<ParamField body="side" type="string" required>
+  The contract side to buy: `yes` or `no`.
+</ParamField>
+
+<ParamField body="count" type="number" required>
+  Number of contracts to purchase.
+</ParamField>
+
+### Response
+
+```json
+{
+  "status": true,
+  "data": {
+    "orderId": "order-uuid",
+    "ticker": "KXBTC-26MAR31-T100000",
+    "side": "yes",
+    "count": 10,
+    "pricePerContract": 65,
+    "totalCostDollars": 6.50,
+    "feeDollars": 0.17,
+    "status": "filled"
+  }
+}
+```
+
+<ResponseField name="data" type="object">
+  <Expandable title="properties" defaultOpen>
+    <ResponseField name="orderId" type="string">
+      Unique identifier for the order.
+    </ResponseField>
+    <ResponseField name="ticker" type="string">
+      The market ticker the order was placed on.
+    </ResponseField>
+    <ResponseField name="side" type="string">
+      The side purchased: `yes` or `no`.
+    </ResponseField>
+    <ResponseField name="count" type="number">
+      Number of contracts filled.
+    </ResponseField>
+    <ResponseField name="pricePerContract" type="number">
+      The average price paid per contract in cents.
+    </ResponseField>
+    <ResponseField name="totalCostDollars" type="number">
+      Total cost of the order in USD.
+    </ResponseField>
+    <ResponseField name="feeDollars" type="number">
+      Kalshi fee charged on the order in USD.
+    </ResponseField>
+    <ResponseField name="status" type="string">
+      Order status: `filled`, `partially_filled`, or `cancelled`.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Sell contracts
+
+Sell contracts you hold. Proceeds are sent directly to your wallet as USDC:
+
+```bash
+curl -X POST https://api.useknot.xyz/predictions/sell \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "ticker": "KXBTC-26MAR31-T100000",
+    "side": "yes",
+    "count": 5
+  }'
+```
+
+### Request parameters
+
+<ParamField body="ticker" type="string" required>
+  The market ticker of the position to sell.
+</ParamField>
+
+<ParamField body="side" type="string" required>
+  The side to sell: `yes` or `no`.
+</ParamField>
+
+<ParamField body="count" type="number" required>
+  Number of contracts to sell.
+</ParamField>
+
+## View positions
+
+List your current prediction market positions:
+
+```bash
+curl "https://api.useknot.xyz/predictions/positions?settled=false" \
+  -H "Authorization: Bearer <token>"
+```
+
+### Query parameters
+
+<ParamField query="settled" type="boolean">
+  Filter by settlement status. Pass `false` to see open positions or `true` to see settled ones.
+</ParamField>
+
+## View order history
+
+Retrieve past orders, optionally filtered by market:
+
+```bash
+curl "https://api.useknot.xyz/predictions/orders?ticker=KXBTC-26MAR31-T100000&limit=50" \
+  -H "Authorization: Bearer <token>"
+```
+
+### Query parameters
+
+<ParamField query="ticker" type="string">
+  Filter orders by market ticker.
+</ParamField>
+
+<ParamField query="limit" type="number" default="50">
+  Maximum number of orders to return.
+</ParamField>
+
+## Withdraw funds
+
+Withdraw your prediction market balance back to your wallet as USDC:
+
+```bash
+curl -X POST https://api.useknot.xyz/predictions/withdraw \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d '{"amountDollars": 50.00}'
+```
+
+<ParamField body="amountDollars" type="number" required>
+  Amount to withdraw in USD.
+</ParamField>
+
+## Contract settlement
+
+At market close, Kalshi settles each contract based on the real-world outcome:
+
+- **Winning contracts** — each contract pays out $1.00
+- **Losing contracts** — expire worthless
+
+Settled proceeds are automatically credited to your prediction market balance. Use the [withdraw endpoint](#withdraw-funds) to move settled funds back to your wallet.
+
+## Policy constraints
+
+<Tip>
+  Prediction markets must be enabled in your agent's policy. Check `allowPredictionMarkets` in your policy settings if you receive a `403` error.
+</Tip>

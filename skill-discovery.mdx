@@ -1,0 +1,96 @@
+---
+title: "Skill discovery"
+description: "Machine-readable API spec for AI agent auto-discovery"
+---
+
+Knot provides a machine-readable API specification at `/skill.md` that allows AI agents to discover wallet capabilities automatically — without hardcoded API knowledge.
+
+## What is `/skill.md`?
+
+The `/skill.md` endpoint serves a markdown file that describes Knot's full API surface. An AI agent can fetch this file at startup to understand:
+
+- Available endpoints and what they do
+- Required parameters and their types
+- Authentication methods
+- Response formats and field definitions
+- Error handling guidelines
+
+## Fetching the skill spec
+
+```bash
+curl https://api.useknot.xyz/skill.md
+```
+
+The response is a markdown file (1,100+ lines) containing:
+
+- A quick start guide
+- Authentication instructions
+- Full endpoint documentation with request and response examples
+- Error handling guidelines
+
+## How an agent uses skill discovery
+
+<Steps>
+  <Step title="Fetch on startup">
+    The agent retrieves `/skill.md` when it initializes, before making any API calls.
+  </Step>
+  <Step title="Parse capabilities">
+    The agent processes the markdown to understand which actions are available and what parameters they require.
+  </Step>
+  <Step title="Construct calls">
+    The agent builds valid API calls based on the specification, using correct endpoints and parameters.
+  </Step>
+  <Step title="Stay updated">
+    When Knot adds new features or endpoints, the agent discovers them automatically on the next startup or refresh.
+  </Step>
+</Steps>
+
+## Integration example
+
+```python
+import requests
+
+def discover_capabilities():
+    response = requests.get("https://api.useknot.xyz/skill.md")
+    skill_content = response.text
+
+    # Parse the markdown to extract endpoints
+    # Use the capabilities to construct API calls
+
+    return skill_content
+
+# Fetch capabilities at startup
+capabilities = discover_capabilities()
+```
+
+## Forward compatibility
+
+Using `/skill.md` for discovery makes your agent forward-compatible with future Knot updates:
+
+| Traditional approach | `skill.md` approach |
+|---------------------|---------------------|
+| Hardcoded API knowledge | Dynamic discovery at runtime |
+| Requires code updates for new features | Automatic feature discovery |
+| Version-specific integration | Always reflects the current API |
+| Manual documentation sync | Self-documenting |
+
+<Tip>
+  If you build a skill-discovery-based agent, you gain new Knot capabilities for free — no code changes required when Knot ships new endpoints.
+</Tip>
+
+## Best practices
+
+<CardGroup cols={2}>
+  <Card title="Fetch at startup" icon="rocket">
+    Load `skill.md` when your agent initializes so it understands available actions before it needs them.
+  </Card>
+  <Card title="Cache locally" icon="database">
+    Cache the skill file in memory or on disk to avoid fetching it on every request.
+  </Card>
+  <Card title="Refresh periodically" icon="arrows-rotate">
+    Re-fetch `skill.md` daily or weekly to pick up new endpoints and updated documentation.
+  </Card>
+  <Card title="Parse systematically" icon="code">
+    Build a structured parser to extract endpoints, parameters, and examples from the markdown.
+  </Card>
+</CardGroup>

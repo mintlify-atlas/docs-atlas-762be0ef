@@ -1,0 +1,128 @@
+---
+title: "Get transaction history"
+description: "Fetch paginated transaction history from the audit log"
+api: "GET /wallets/me/history"
+---
+
+Returns a paginated list of the agent's past transactions from the audit log. Filter by action type and use `limit` and `offset` for pagination.
+
+<Note>
+  Requires authentication via Bearer token.
+</Note>
+
+## Query parameters
+
+<ParamField query="limit" type="number" default="50">
+  Maximum number of transactions to return. Cannot exceed `100`.
+</ParamField>
+
+<ParamField query="offset" type="number" default="0">
+  Number of records to skip for pagination.
+</ParamField>
+
+<ParamField query="action" type="string">
+  Filter results by action type. Accepted values: `transfer`, `trade`, `deposit`.
+</ParamField>
+
+## Response
+
+<ResponseField name="status" type="boolean">
+  `true` when the request succeeds.
+</ResponseField>
+
+<ResponseField name="data" type="object">
+  <Expandable title="properties">
+    <ResponseField name="transactions" type="array">
+      Array of transaction records.
+      <Expandable title="item properties">
+        <ResponseField name="id" type="string">
+          Transaction ID (UUID).
+        </ResponseField>
+        <ResponseField name="action" type="string">
+          Action type, e.g., `transfer` or `trade`.
+        </ResponseField>
+        <ResponseField name="asset" type="string">
+          Asset involved in the transaction.
+        </ResponseField>
+        <ResponseField name="amount" type="number">
+          Transaction amount.
+        </ResponseField>
+        <ResponseField name="to" type="string">
+          Recipient address. Present for transfer transactions.
+        </ResponseField>
+        <ResponseField name="signature" type="string">
+          On-chain transaction signature.
+        </ResponseField>
+        <ResponseField name="status" type="string">
+          Transaction status, e.g., `confirmed`.
+        </ResponseField>
+        <ResponseField name="metadata" type="object">
+          Additional metadata specific to the action type.
+        </ResponseField>
+        <ResponseField name="createdAt" type="string">
+          Timestamp when the transaction was created (ISO 8601).
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="pagination" type="object">
+      Pagination metadata.
+      <Expandable title="properties">
+        <ResponseField name="total" type="number">
+          Total number of matching transactions.
+        </ResponseField>
+        <ResponseField name="limit" type="number">
+          The `limit` value used in this request.
+        </ResponseField>
+        <ResponseField name="offset" type="number">
+          The `offset` value used in this request.
+        </ResponseField>
+        <ResponseField name="hasMore" type="boolean">
+          `true` if additional pages exist.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Errors
+
+| Status | Description |
+|--------|-------------|
+| `401` | Missing or invalid Bearer token |
+| `429` | Rate limit exceeded |
+
+<RequestExample>
+```bash cURL
+curl "https://api.useknot.xyz/wallets/me/history?limit=50&offset=0&action=transfer" \
+  -H "Authorization: Bearer <token>"
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200
+{
+  "status": true,
+  "data": {
+    "transactions": [
+      {
+        "id": "uuid",
+        "action": "transfer",
+        "asset": "USDC",
+        "amount": 100,
+        "to": "RecipientAddress...",
+        "signature": "5UfgJ3vN...",
+        "status": "confirmed",
+        "metadata": {},
+        "createdAt": "2025-01-10T12:00:00.000Z"
+      }
+    ],
+    "pagination": {
+      "total": 150,
+      "limit": 50,
+      "offset": 0,
+      "hasMore": true
+    }
+  }
+}
+```
+</ResponseExample>

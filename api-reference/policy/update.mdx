@@ -1,0 +1,135 @@
+---
+title: "Update policy"
+description: "Update the agent's policy settings"
+api: "PATCH /wallets/me/policy"
+---
+
+Updates one or more policy fields for the agent. All fields are optional — only include the fields you want to change. The response returns the full updated policy.
+
+<Note>
+  Requires authentication via Bearer token.
+</Note>
+
+<Tip>
+  To restrict transfers to specific addresses only, set `allowedRecipients` to an array of allowed Solana addresses. To allow transfers to any address, set it to an empty array `[]`.
+</Tip>
+
+## Request body
+
+All fields are optional. Only include the fields you want to update.
+
+<ParamField body="maxSingleTransactionInUsd" type="number">
+  Maximum USD value allowed per individual transaction.
+</ParamField>
+
+<ParamField body="dailyLimitInUsd" type="number">
+  Maximum total USD value allowed across all transactions in a 24-hour period.
+</ParamField>
+
+<ParamField body="allowedRecipients" type="array">
+  Whitelist of Solana addresses permitted to receive transfers. Pass an empty array `[]` to allow all recipients.
+</ParamField>
+
+<ParamField body="allowTrading" type="boolean">
+  Set to `true` to enable token swaps via the [trade endpoint](/api-reference/wallet/trade), or `false` to disable.
+</ParamField>
+
+<ParamField body="allowLiquidityProvision" type="boolean">
+  Set to `true` to allow liquidity pool interactions, or `false` to disable.
+</ParamField>
+
+<ParamField body="allowPredictionMarkets" type="boolean">
+  Set to `true` to allow prediction market interactions, or `false` to disable.
+</ParamField>
+
+<ParamField body="sessionExpirationHours" type="number">
+  JWT token validity in hours. Changes take effect on the next authentication.
+</ParamField>
+
+## Response
+
+<ResponseField name="status" type="boolean">
+  `true` when the update succeeds.
+</ResponseField>
+
+<ResponseField name="statusCode" type="number">
+  HTTP status code.
+</ResponseField>
+
+<ResponseField name="message" type="string">
+  Human-readable result message.
+</ResponseField>
+
+<ResponseField name="data" type="object">
+  <Expandable title="properties">
+    <ResponseField name="policy" type="object">
+      The full updated policy after applying changes.
+      <Expandable title="properties">
+        <ResponseField name="maxSingleTransactionInUsd" type="number">
+          Maximum USD value per transaction.
+        </ResponseField>
+        <ResponseField name="dailyLimitInUsd" type="number">
+          Maximum USD value per 24 hours.
+        </ResponseField>
+        <ResponseField name="allowedRecipients" type="array">
+          Whitelist of allowed transfer recipients.
+        </ResponseField>
+        <ResponseField name="allowTrading" type="boolean">
+          Whether trading is enabled.
+        </ResponseField>
+        <ResponseField name="allowLiquidityProvision" type="boolean">
+          Whether liquidity provision is enabled.
+        </ResponseField>
+        <ResponseField name="allowPredictionMarkets" type="boolean">
+          Whether prediction markets are enabled.
+        </ResponseField>
+        <ResponseField name="sessionExpirationHours" type="number">
+          JWT token validity in hours.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Errors
+
+| Status | Description |
+|--------|-------------|
+| `400` | Invalid field value or type |
+| `401` | Missing or invalid Bearer token |
+| `429` | Rate limit exceeded |
+
+<RequestExample>
+```bash cURL
+curl -X PATCH https://api.useknot.xyz/wallets/me/policy \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "maxSingleTransactionInUsd": 500,
+    "dailyLimitInUsd": 2000,
+    "allowTrading": true,
+    "allowPredictionMarkets": false
+  }'
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200
+{
+  "status": true,
+  "statusCode": 200,
+  "message": "Policy updated successfully.",
+  "data": {
+    "policy": {
+      "maxSingleTransactionInUsd": 500,
+      "dailyLimitInUsd": 2000,
+      "allowedRecipients": [],
+      "allowTrading": true,
+      "allowLiquidityProvision": true,
+      "allowPredictionMarkets": false,
+      "sessionExpirationHours": 168
+    }
+  }
+}
+```
+</ResponseExample>

@@ -1,0 +1,163 @@
+---
+title: "Transfers"
+description: "Send SOL and SPL tokens from your agent wallet"
+---
+
+You can transfer SOL and any SPL token from your agent's wallet to any Solana address. The API handles transaction signing, fee calculation, and on-chain confirmation.
+
+## Transfer SOL
+
+Omit the `mint` field to send native SOL:
+
+```bash
+curl -X POST https://api.useknot.xyz/wallets/me/actions/transfer \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "to": "RecipientSolanaAddress...",
+    "amount": 0.5
+  }'
+```
+
+## Transfer SPL tokens
+
+Include the `mint` field to send an SPL token. You can identify the token by its common symbol or its full mint address:
+
+<Tabs>
+  <Tab title="Using symbol">
+    ```bash
+    curl -X POST https://api.useknot.xyz/wallets/me/actions/transfer \
+      -H "Authorization: Bearer <token>" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "to": "RecipientSolanaAddress...",
+        "amount": 100,
+        "mint": "USDC"
+      }'
+    ```
+  </Tab>
+  <Tab title="Using mint address">
+    ```bash
+    curl -X POST https://api.useknot.xyz/wallets/me/actions/transfer \
+      -H "Authorization: Bearer <token>" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "to": "RecipientSolanaAddress...",
+        "amount": 100,
+        "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"
+      }'
+    ```
+  </Tab>
+</Tabs>
+
+## Request parameters
+
+<ParamField body="to" type="string" required>
+  Recipient's Solana address.
+</ParamField>
+
+<ParamField body="amount" type="number" required>
+  Amount to transfer.
+</ParamField>
+
+<ParamField body="mint" type="string">
+  Token symbol (e.g., `USDC`, `BONK`) or the token's mint address. Omit this field for a native SOL transfer.
+</ParamField>
+
+## Response
+
+```json
+{
+  "status": true,
+  "data": {
+    "signature": "5UfgJ3vN...",
+    "explorerUrl": "https://solscan.io/tx/5UfgJ3vN...",
+    "amount": "100 USDC",
+    "amountSent": 98.9,
+    "fee": 1.1,
+    "feeMode": "deducted",
+    "recipient": "RecipientSolanaAddress..."
+  }
+}
+```
+
+### Response fields
+
+<ResponseField name="data" type="object">
+  <Expandable title="properties" defaultOpen>
+    <ResponseField name="signature" type="string">
+      The on-chain transaction signature.
+    </ResponseField>
+    <ResponseField name="explorerUrl" type="string">
+      Link to view the transaction on Solscan.
+    </ResponseField>
+    <ResponseField name="amount" type="string">
+      The transfer amount formatted with the token symbol (e.g., `100 USDC`).
+    </ResponseField>
+    <ResponseField name="amountSent" type="number">
+      The actual amount received by the recipient after fees.
+    </ResponseField>
+    <ResponseField name="fee" type="number">
+      The fee charged on the transfer.
+    </ResponseField>
+    <ResponseField name="feeMode" type="string">
+      How the fee was applied: `added` means the fee was charged on top of the transfer amount; `deducted` means it was taken from the transfer amount.
+    </ResponseField>
+    <ResponseField name="recipient" type="string">
+      The recipient's Solana address.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Fee structure
+
+Knot charges a small fee on every transfer to cover infrastructure costs:
+
+| Fee type | Amount |
+|----------|--------|
+| Percentage fee | 1% of transfer amount |
+| Flat fee | $0.10 equivalent (covers signing costs) |
+
+### Fee modes
+
+The fee handling depends on your wallet's available balance:
+
+<Tabs>
+  <Tab title="Sufficient balance">
+    If the wallet holds more than the transfer amount, the fee is **added on top**. The recipient receives exactly the amount you specified.
+  </Tab>
+  <Tab title="Exact balance">
+    If the wallet only holds the transfer amount, the fee is **deducted** from it. The recipient receives the amount minus the fee.
+  </Tab>
+</Tabs>
+
+Check the `feeMode` field in the response to see which method was applied:
+- `added` — fee was charged on top; recipient got the full amount
+- `deducted` — fee was taken from the transfer; recipient got less
+
+## Policy constraints
+
+<Warning>
+  Transfers are subject to your agent's spending limits. If a transfer exceeds the configured limit, the request will be rejected with a `403` error. Review your policy settings to adjust spending limits.
+</Warning>
+
+## Error scenarios
+
+<AccordionGroup>
+  <Accordion title="Insufficient balance">
+    The wallet does not have enough SOL or tokens to cover the transfer amount plus fees. Top up your wallet before retrying.
+  </Accordion>
+  <Accordion title="Invalid recipient address">
+    The `to` address is not a valid Solana public key. Verify the address and retry.
+  </Accordion>
+  <Accordion title="Unknown token symbol">
+    The value provided in `mint` is not a recognized symbol and does not match a known mint address. Use the full mint address instead.
+  </Accordion>
+  <Accordion title="Spending limit exceeded">
+    The transfer amount exceeds the limit defined in your agent's policy. A `403` error is returned. Adjust the policy or reduce the transfer amount.
+  </Accordion>
+</AccordionGroup>
+
+<Tip>
+  Use idempotency keys on transfer requests to prevent duplicate transactions in case of network failures. See [Idempotency](/idempotency) for details.
+</Tip>

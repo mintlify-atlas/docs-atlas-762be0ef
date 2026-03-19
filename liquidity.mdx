@@ -1,0 +1,260 @@
+---
+title: "Liquidity provision"
+description: "Provide liquidity to Meteora DLMM pools"
+---
+
+You can deposit tokens into Meteora's Dynamic Liquidity Market Maker (DLMM) pools to earn trading fees. DLMM pools use a bin-based model where liquidity is concentrated in discrete price ranges, giving you fine-grained control over how your capital is deployed.
+
+<Note>
+  Liquidity operations are custodial. Funds are held in a platform-managed position, with your agent maintaining a tracked balance.
+</Note>
+
+## How DLMM pools work
+
+Meteora DLMM pools organize liquidity into discrete price bins. Each bin represents a price range, and trades execute against the bin at the current active price. As the market price moves, different bins become active. You earn fees from any bin your liquidity occupies when a trade passes through it.
+
+Key pool parameters:
+- **Bin step** — the price increment between adjacent bins (e.g., `10` = 0.1% per bin)
+- **Base fee** — the percentage fee charged on trades through the pool
+- **Active bin** — the bin at the current market price
+
+## Discover pools
+
+List available liquidity pools, optionally filtered by token pair:
+
+```bash
+curl "https://api.useknot.xyz/wallets/me/pools?tokenX=SOL&tokenY=USDC&limit=50" \
+  -H "Authorization: Bearer <token>"
+```
+
+### Query parameters
+
+<ParamField query="tokenX" type="string">
+  Filter by token X symbol or mint address.
+</ParamField>
+
+<ParamField query="tokenY" type="string">
+  Filter by token Y symbol or mint address.
+</ParamField>
+
+<ParamField query="limit" type="number" default="50">
+  Maximum number of pools to return.
+</ParamField>
+
+### Response
+
+```json
+{
+  "status": true,
+  "data": {
+    "pools": [
+      {
+        "address": "PoolAddress123...",
+        "name": "SOL-USDC",
+        "mintX": "So11111111111111111111111111111111111111112",
+        "mintY": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+        "tvl": 5000000,
+        "apr": 45.2,
+        "binStep": 10,
+        "baseFee": 0.25
+      }
+    ]
+  }
+}
+```
+
+<ResponseField name="data.pools" type="array">
+  <Expandable title="pool object properties">
+    <ResponseField name="address" type="string">
+      The on-chain pool address. Use this as the `pool` parameter when adding liquidity.
+    </ResponseField>
+    <ResponseField name="name" type="string">
+      Human-readable pool name (e.g., `SOL-USDC`).
+    </ResponseField>
+    <ResponseField name="mintX" type="string">
+      Mint address of token X.
+    </ResponseField>
+    <ResponseField name="mintY" type="string">
+      Mint address of token Y.
+    </ResponseField>
+    <ResponseField name="tvl" type="number">
+      Total value locked in the pool, in USD.
+    </ResponseField>
+    <ResponseField name="apr" type="number">
+      Current annualized fee yield as a percentage.
+    </ResponseField>
+    <ResponseField name="binStep" type="number">
+      Price increment between bins in basis points.
+    </ResponseField>
+    <ResponseField name="baseFee" type="number">
+      Fee percentage charged on trades through this pool.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Get pool details
+
+Retrieve detailed information about a specific pool, including current price and bin configuration:
+
+```bash
+curl "https://api.useknot.xyz/wallets/me/pools/PoolAddress123..." \
+  -H "Authorization: Bearer <token>"
+```
+
+## Add liquidity
+
+Deposit tokens into a pool:
+
+```bash
+curl -X POST https://api.useknot.xyz/wallets/me/actions/add-liquidity \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "pool": "PoolAddress123...",
+    "amountX": 1.0,
+    "amountY": 86.5,
+    "strategy": "spot",
+    "rangeWidth": 10
+  }'
+```
+
+### Request parameters
+
+<ParamField body="pool" type="string" required>
+  The pool address to deposit into. Obtain this from the [discover pools](#discover-pools) endpoint.
+</ParamField>
+
+<ParamField body="amountX" type="number" required>
+  Amount of token X to deposit. Set to `0` for a Y-only one-sided position.
+</ParamField>
+
+<ParamField body="amountY" type="number">
+  Amount of token Y to deposit. Set to `0` for an X-only one-sided position.
+</ParamField>
+
+<ParamField body="strategy" type="string" required>
+  Liquidity distribution strategy: `spot`, `curve`, or `bidAsk`.
+</ParamField>
+
+<ParamField body="rangeWidth" type="number">
+  Number of bins to spread liquidity across. Accepts values from `1` to `100`.
+</ParamField>
+
+### Liquidity strategies
+
+Choose a strategy based on your market outlook and how actively you want to manage the position:
+
+<Tabs>
+  <Tab title="Spot">
+    Distributes liquidity uniformly across the selected bins. Provides balanced exposure to both tokens with moderate fee generation.
+
+    **Best for**: Neutral market outlook, lower maintenance.
+  </Tab>
+  <Tab title="Curve">
+    Concentrates liquidity around the current active price. Generates higher fees but increases impermanent loss risk if the price moves.
+
+    **Best for**: Stable pairs, actively managed positions.
+  </Tab>
+  <Tab title="Bid-Ask">
+    Applies an asymmetric distribution weighted toward one side. Use this when you have a directional view on price.
+
+    **Best for**: Directional positions, active market making.
+  </Tab>
+</Tabs>
+
+### One-sided liquidity
+
+You can deposit only one token:
+
+- **Token X only** — set `amountX > 0` and `amountY = 0`. Liquidity is placed in bins above the active price.
+- **Token Y only** — set `amountX = 0` and `amountY > 0`. Liquidity is placed in bins below the active price.
+
+## View positions
+
+List all your active or closed liquidity positions:
+
+```bash
+curl "https://api.useknot.xyz/wallets/me/positions?status=active" \
+  -H "Authorization: Bearer <token>"
+```
+
+### Query parameters
+
+<ParamField query="status" type="string">
+  Filter by position status: `active` or `closed`.
+</ParamField>
+
+## Get position details
+
+Retrieve on-chain data and pending rewards for a specific position:
+
+```bash
+curl "https://api.useknot.xyz/wallets/me/positions/position-uuid" \
+  -H "Authorization: Bearer <token>"
+```
+
+Use this endpoint to check whether there are unclaimed rewards before calling the [claim rewards](#claim-rewards) endpoint.
+
+## Remove liquidity
+
+Withdraw some or all of your position from a pool:
+
+```bash
+curl -X POST https://api.useknot.xyz/wallets/me/actions/remove-liquidity \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "positionId": "position-uuid",
+    "percentage": 100
+  }'
+```
+
+### Request parameters
+
+<ParamField body="positionId" type="string" required>
+  The database position ID (UUID). This is not the on-chain public key — retrieve it from the [view positions](#view-positions) endpoint.
+</ParamField>
+
+<ParamField body="percentage" type="number" default="100">
+  Percentage of the position to withdraw. Accepts values from `1` to `100`.
+</ParamField>
+
+## Claim rewards
+
+Claim earned trading fees from a position:
+
+```bash
+curl -X POST https://api.useknot.xyz/wallets/me/actions/claim-rewards \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "positionId": "position-uuid"
+  }'
+```
+
+<ParamField body="positionId" type="string" required>
+  The database position ID (UUID) of the position to claim rewards from.
+</ParamField>
+
+## Retry failed withdrawal
+
+If a liquidity removal succeeded on-chain but the transfer back to your wallet failed, retry the withdrawal without repeating the on-chain removal:
+
+```bash
+curl -X POST https://api.useknot.xyz/wallets/me/actions/retry-withdrawal \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "positionId": "position-uuid"
+  }'
+```
+
+<ParamField body="positionId" type="string" required>
+  The database position ID of the failed withdrawal to retry.
+</ParamField>
+
+## Policy constraints
+
+<Tip>
+  Liquidity provision must be enabled in your agent's policy. Check `allowLiquidityProvision` in your policy settings if you receive a `403` error.
+</Tip>

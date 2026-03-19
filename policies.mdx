@@ -1,0 +1,184 @@
+---
+title: "Policy engine"
+description: "Configure spending limits and permissions for your agent"
+---
+
+Every agent has a policy that governs what it can do. Policies are enforced server-side before any transaction is signed, protecting against runaway spending and unauthorized operations.
+
+## View current policy
+
+Fetch your agent's current policy with a `GET` request to `/wallets/me/policy`:
+
+```bash
+curl https://api.useknot.xyz/wallets/me/policy \
+  -H "Authorization: Bearer <token>"
+```
+
+### Response
+
+```json
+{
+  "status": true,
+  "data": {
+    "policy": {
+      "maxSingleTransactionInUsd": 100,
+      "dailyLimitInUsd": 500,
+      "allowedRecipients": [],
+      "allowTrading": true,
+      "allowLiquidityProvision": true,
+      "allowPredictionMarkets": true,
+      "sessionExpirationHours": 168
+    }
+  }
+}
+```
+
+## Policy fields
+
+<ParamField body="maxSingleTransactionInUsd" type="number" default="100">
+  Maximum USD value allowed per single transaction. Transactions exceeding this limit are rejected before signing.
+</ParamField>
+
+<ParamField body="dailyLimitInUsd" type="number" default="500">
+  Maximum USD value across all operations in a rolling 24-hour window.
+</ParamField>
+
+<ParamField body="allowedRecipients" type="string[]" default="[]">
+  Whitelist of Solana addresses that your agent can send funds to. An empty array means all recipients are allowed.
+</ParamField>
+
+<ParamField body="allowTrading" type="boolean" default="true">
+  Controls whether the agent can swap tokens via Jupiter.
+</ParamField>
+
+<ParamField body="allowLiquidityProvision" type="boolean" default="true">
+  Controls whether the agent can add or remove liquidity positions.
+</ParamField>
+
+<ParamField body="allowPredictionMarkets" type="boolean" default="true">
+  Controls whether the agent can trade on prediction markets.
+</ParamField>
+
+<ParamField body="sessionExpirationHours" type="number" default="168">
+  How long JWT tokens remain valid, in hours. The default is 168 hours (7 days).
+</ParamField>
+
+## Update policy
+
+Send a `PATCH` request with only the fields you want to change. All fields are optional.
+
+```bash
+curl -X PATCH https://api.useknot.xyz/wallets/me/policy \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "maxSingleTransactionInUsd": 500,
+    "dailyLimitInUsd": 2000,
+    "allowTrading": true,
+    "allowPredictionMarkets": false
+  }'
+```
+
+### Response
+
+```json
+{
+  "status": true,
+  "statusCode": 200,
+  "message": "Policy updated successfully.",
+  "data": {
+    "policy": {
+      "maxSingleTransactionInUsd": 500,
+      "dailyLimitInUsd": 2000,
+      "allowedRecipients": [],
+      "allowTrading": true,
+      "allowLiquidityProvision": true,
+      "allowPredictionMarkets": false,
+      "sessionExpirationHours": 168
+    }
+  }
+}
+```
+
+## How policies are enforced
+
+Before every action, the policy engine runs through a series of checks:
+
+<Steps>
+  <Step title="Calculate USD value">
+    The engine fetches current token prices and calculates the transaction's value in USD.
+  </Step>
+  <Step title="Check per-transaction limit">
+    The engine verifies the transaction is within `maxSingleTransactionInUsd`.
+  </Step>
+  <Step title="Check daily limit">
+    The engine checks whether the rolling 24-hour total — including this transaction — stays within `dailyLimitInUsd`.
+  </Step>
+  <Step title="Check feature toggles">
+    The engine confirms that trading, liquidity provision, or prediction markets are enabled for this action type.
+  </Step>
+  <Step title="Check recipient whitelist">
+    For transfers, the engine verifies the recipient is in `allowedRecipients` if the whitelist is configured.
+  </Step>
+  <Step title="Approve or reject">
+    If any check fails, the request is rejected immediately — no transaction is signed.
+  </Step>
+</Steps>
+
+<Warning>
+  Policy enforcement happens server-side before signing. You cannot bypass these checks by modifying client-side code.
+</Warning>
+
+## Policy violation errors
+
+When a policy check fails, you receive a `403` response with a descriptive message:
+
+<Tabs>
+  <Tab title="Transaction limit exceeded">
+    ```json
+    {
+      "status": false,
+      "statusCode": 403,
+      "message": "Transaction value of $150.00 exceeds single transaction limit of $100.00.",
+      "data": null
+    }
+    ```
+  </Tab>
+  <Tab title="Daily limit exceeded">
+    ```json
+    {
+      "status": false,
+      "statusCode": 403,
+      "message": "Transaction would exceed daily USD limit of $500. Already spent: $450.00 today.",
+      "data": null
+    }
+    ```
+  </Tab>
+  <Tab title="Feature disabled">
+    ```json
+    {
+      "status": false,
+      "statusCode": 403,
+      "message": "Trading is not enabled for this agent.",
+      "data": null
+    }
+    ```
+  </Tab>
+</Tabs>
+
+## Best practices
+
+<CardGroup cols={2}>
+  <Card title="Start conservative" icon="shield-halved">
+    Begin with low limits and increase them only as needed based on actual usage patterns.
+  </Card>
+  <Card title="Use recipient whitelists" icon="list-check">
+    For high-value agents, configure `allowedRecipients` to restrict where funds can be sent.
+  </Card>
+  <Card title="Monitor spending" icon="chart-line">
+    Track daily spending via audit logs to understand usage patterns before raising limits.
+  </Card>
+  <Card title="Disable unused features" icon="toggle-off">
+    Turn off trading, liquidity provision, or prediction markets if your agent doesn't use them.
+  </Card>
+</CardGroup>

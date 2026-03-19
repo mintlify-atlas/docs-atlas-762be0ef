@@ -1,0 +1,110 @@
+---
+title: "Transfer tokens"
+description: "Transfer SOL or SPL tokens to another Solana address"
+api: "POST /wallets/me/actions/transfer"
+---
+
+Sends SOL or any SPL token from the agent's wallet to a recipient address. Omit the `mint` field to send native SOL.
+
+<Note>
+  Requires authentication via Bearer token.
+</Note>
+
+<Warning>
+  Transfers are subject to your agent's policy limits. If the transfer exceeds `maxSingleTransactionInUsd` or the daily limit, the request is rejected. Configure limits via [Update policy](/api-reference/policy/update).
+</Warning>
+
+## Request body
+
+<ParamField body="to" type="string" required>
+  Recipient's Solana wallet address.
+</ParamField>
+
+<ParamField body="amount" type="number" required>
+  Amount to transfer, denominated in the token's standard unit (e.g., `1.5` for 1.5 SOL or `100` for 100 USDC).
+</ParamField>
+
+<ParamField body="mint" type="string">
+  Token symbol (e.g., `USDC`, `BONK`) or mint address. Omit this field to transfer native SOL.
+</ParamField>
+
+## Response
+
+<ResponseField name="status" type="boolean">
+  `true` when the transfer succeeds.
+</ResponseField>
+
+<ResponseField name="data" type="object">
+  <Expandable title="properties">
+    <ResponseField name="signature" type="string">
+      On-chain transaction signature.
+    </ResponseField>
+    <ResponseField name="explorerUrl" type="string">
+      Solscan link to inspect the transaction.
+    </ResponseField>
+    <ResponseField name="amount" type="string">
+      Formatted transfer amount with token symbol (e.g., `100 USDC`).
+    </ResponseField>
+    <ResponseField name="amountSent" type="number">
+      Actual amount received by the recipient after fees.
+    </ResponseField>
+    <ResponseField name="fee" type="number">
+      Fee charged for the transfer.
+    </ResponseField>
+    <ResponseField name="feeMode" type="string">
+      How the fee was applied. `added` means the fee was charged on top of the amount; `deducted` means it was taken from the amount.
+    </ResponseField>
+    <ResponseField name="recipient" type="string">
+      Recipient wallet address.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Errors
+
+| Status | Description |
+|--------|-------------|
+| `400` | Invalid address, amount, or token symbol |
+| `401` | Missing or invalid Bearer token |
+| `403` | Transfer blocked by agent policy |
+| `429` | Rate limit exceeded |
+
+<RequestExample>
+```bash cURL (SOL)
+curl -X POST https://api.useknot.xyz/wallets/me/actions/transfer \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "to": "RecipientSolanaAddress...",
+    "amount": 0.5
+  }'
+```
+
+```bash cURL (USDC)
+curl -X POST https://api.useknot.xyz/wallets/me/actions/transfer \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "to": "RecipientSolanaAddress...",
+    "amount": 100,
+    "mint": "USDC"
+  }'
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200
+{
+  "status": true,
+  "data": {
+    "signature": "5UfgJ3vN...",
+    "explorerUrl": "https://solscan.io/tx/5UfgJ3vN...",
+    "amount": "100 USDC",
+    "amountSent": 98.9,
+    "fee": 1.1,
+    "feeMode": "deducted",
+    "recipient": "RecipientSolanaAddress..."
+  }
+}
+```
+</ResponseExample>

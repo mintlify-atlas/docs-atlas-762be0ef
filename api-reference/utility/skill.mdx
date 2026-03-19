@@ -1,0 +1,54 @@
+---
+title: "Agent capabilities"
+description: "Get machine-readable API documentation for agent discovery"
+api: "GET /skill.md"
+---
+
+Returns a markdown document describing all Knot API capabilities. Designed for AI agent consumption — agents can fetch this file at startup to discover available endpoints, authentication steps, and usage examples without any prior configuration.
+
+<Info>
+  This endpoint does not require authentication.
+</Info>
+
+## Response
+
+Returns a `text/markdown` document containing:
+
+- Quick start guide
+- Authentication instructions
+- All endpoint documentation with paths and methods
+- Request and response examples
+- Error handling guidelines
+
+<Tip>
+  Fetch `/skill.md` as part of your agent's initialization routine to keep its knowledge of the Knot API current without hardcoding endpoint details.
+</Tip>
+
+## Errors
+
+| Status | Description |
+|--------|-------------|
+| `503` | Service unavailable |
+
+<RequestExample>
+```bash cURL
+curl https://api.useknot.xyz/skill.md
+```
+</RequestExample>
+
+<ResponseExample>
+```markdown
+# Knot API
+
+## Quick Start
+
+1. Authenticate via email OTP
+2. Receive JWT token
+3. Call action endpoints
+
+## Endpoints
+
+### POST /connect/start
+...
+```
+</ResponseExample>

@@ -1,0 +1,118 @@
+---
+title: "Idempotency"
+description: "Prevent duplicate transactions with idempotency keys"
+---
+
+Network issues can cause requests to time out before you receive a response. Without idempotency, retrying a request could result in duplicate transfers, double trades, or repeated liquidity operations.
+
+Knot supports idempotency keys to ensure that retrying a request has no additional effect if the original succeeded.
+
+## Using idempotency keys
+
+Include the `Idempotency-Key` header with a unique string identifier on any financial operation:
+
+```bash
+curl -X POST https://api.useknot.xyz/wallets/me/actions/transfer \
+  -H "Authorization: Bearer <token>" \
+  -H "Idempotency-Key: transfer-abc123-1234567890" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "to": "RecipientAddress...",
+    "amount": 100,
+    "mint": "USDC"
+  }'
+```
+
+<Tip>
+  Use a key that includes context about the operation — such as the recipient, amount, and a timestamp — to make it easy to trace later.
+</Tip>
+
+## How it works
+
+<Steps>
+  <Step title="First request">
+    The request is processed normally. The response is cached against the idempotency key.
+  </Step>
+  <Step title="Duplicate request">
+    If the same key is sent within 24 hours, the cached response is returned immediately — the operation is not re-executed.
+  </Step>
+  <Step title="Different key">
+    A new key is always treated as a new request and processed normally.
+  </Step>
+</Steps>
+
+## Duplicate response
+
+When Knot detects a duplicate request, it returns the cached original response with an indicator:
+
+```json
+{
+  "status": true,
+  "statusCode": 200,
+  "message": "Request already processed (idempotent).",
+  "data": {
+    "cached": true,
+    "originalResponse": {
+      "signature": "5UfgJ3vN...",
+      "explorerUrl": "https://solscan.io/tx/5UfgJ3vN...",
+      "amount": "100 USDC"
+    }
+  }
+}
+```
+
+<Warning>
+  Idempotency keys are cached for 24 hours. After that window, the same key is treated as a new request.
+</Warning>
+
+## Key generation strategies
+
+Choose a strategy that produces unique, traceable keys:
+
+### UUID-based
+
+```python
+import uuid
+idempotency_key = f"transfer-{uuid.uuid4()}"
+```
+
+### Operation-based
+
+```python
+# Includes operation details to prevent logical duplicates
+idempotency_key = f"transfer-{recipient}-{amount}-{timestamp}"
+```
+
+### Hash-based
+
+```python
+import hashlib
+content = f"{recipient}:{amount}:{timestamp}"
+idempotency_key = hashlib.sha256(content.encode()).hexdigest()[:32]
+```
+
+## When to use a new key
+
+| Scenario | Use same key? | Reason |
+|----------|---------------|--------|
+| Network timeout during request | Yes | The request may have succeeded — safe to retry with the same key |
+| `5xx` error response | No | The request failed — safe to retry with a new key |
+| `4xx` error response | No | The request was rejected — fix the issue before retrying |
+| Intentional new operation | No | This is a distinct operation |
+
+## Best practices
+
+<CardGroup cols={2}>
+  <Card title="Always use for financial operations" icon="money-bill-transfer">
+    All transfers, trades, and liquidity operations should include idempotency keys.
+  </Card>
+  <Card title="Generate unique keys" icon="fingerprint">
+    Use UUIDs, timestamps, or content hashes to ensure each key is unique.
+  </Card>
+  <Card title="New key for retries" icon="rotate">
+    When retrying after a non-timeout error, always generate a fresh idempotency key.
+  </Card>
+  <Card title="Include operation context" icon="tags">
+    Embed operation details in the key to make it easier to trace and debug.
+  </Card>
+</CardGroup>

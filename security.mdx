@@ -1,0 +1,112 @@
+---
+title: "Security"
+description: "How Knot protects your agent's funds and private keys"
+---
+
+Knot implements multiple layers of security to protect agent funds and ensure safe operations. This page explains the architecture and controls in place.
+
+## Key management
+
+Private keys are stored in a Trusted Execution Environment (TEE) — a hardware-isolated secure enclave separate from the main system.
+
+- **Hardware isolation**: Keys exist in a secure enclave that is physically separated from the rest of the system.
+- **No extraction**: Even platform operators cannot retrieve private keys from the enclave.
+- **Per-agent isolation**: Each agent receives its own sub-organization within the TEE, preventing cross-agent access.
+- **Generated inside**: Keys are created within the enclave and never transmitted outside it.
+
+<Note>
+  Because keys are generated and stored inside the TEE, Knot itself never has access to your agent's private key in plaintext.
+</Note>
+
+## Authentication security
+
+Knot uses a passwordless OTP authentication model to eliminate common attack vectors:
+
+| Protection | Description |
+|------------|-------------|
+| Passwordless OTP | No passwords to leak or brute-force |
+| JWT tokens | Short-lived, cryptographically signed bearer tokens |
+| Bearer tokens only | Credentials are never passed in URLs |
+| Single-use OTP | Codes expire after 10 minutes and are automatically purged |
+
+### JWT token model
+
+After authenticating with an OTP, you receive a JWT token. This token:
+
+- Is cryptographically signed and cannot be tampered with
+- Has a configurable expiration (default: 168 hours / 7 days, set via `sessionExpirationHours` in your policy)
+- Must be passed as a `Bearer` token in the `Authorization` header for every request
+- Is invalidated on re-authentication
+
+<Warning>
+  Store JWT tokens in environment variables or a secrets manager. Never commit tokens to source control or log them to output.
+</Warning>
+
+## Transaction security
+
+Every transaction passes through multiple safety checks before being signed:
+
+<Steps>
+  <Step title="Policy enforcement">
+    All spending limits and feature toggles are checked before signing. Transactions that exceed limits are rejected immediately.
+  </Step>
+  <Step title="Simulation">
+    External transactions are simulated before signing to detect unexpected outcomes or issues.
+  </Step>
+  <Step title="Pattern detection">
+    Suspicious operation patterns are flagged and rejected automatically.
+  </Step>
+  <Step title="Audit logging">
+    Every action is logged with full metadata, providing a complete audit trail for accountability.
+  </Step>
+</Steps>
+
+## Rate limiting
+
+Multiple layers of rate limiting protect against abuse and automated attacks:
+
+| Layer | Limit | Window |
+|-------|-------|--------|
+| Global | 1,000 requests | per minute |
+| Per-IP | 100 requests | per minute |
+| Per-agent | 60 requests | per minute |
+| OTP requests | 5 attempts | per 15 minutes |
+
+Exceeding any limit returns `429 Too Many Requests`. Implement exponential backoff when you receive this response.
+
+## Input validation
+
+All inputs are validated before processing reaches business logic:
+
+- **Schema validation**: All requests are validated against strict Zod schemas before processing.
+- **Rejection before processing**: Invalid requests are rejected immediately, before any side effects occur.
+- **SQL injection prevention**: Parameterized queries are used throughout the data layer.
+- **XSS prevention**: Output encoding and content security policies are applied consistently.
+
+## Audit logging
+
+Every operation is recorded with full metadata including timestamp, agent identity, endpoint, request parameters, and outcome. Use audit logs to:
+
+- Detect unusual spending patterns
+- Investigate unexpected transactions
+- Verify that your agent is operating within expected parameters
+
+## Best practices for agents
+
+<AccordionGroup>
+  <Accordion title="Secure token storage">
+    Store JWT tokens in environment variables or a secrets manager. Never commit tokens to source control or log them to output.
+  </Accordion>
+  <Accordion title="Handle token expiration">
+    Implement automatic re-authentication when tokens expire. Watch for `401` responses and refresh credentials before retrying.
+  </Accordion>
+  <Accordion title="Use idempotency keys">
+    Always include `Idempotency-Key` headers for financial operations to prevent duplicate transactions in the event of network failures.
+  </Accordion>
+  <Accordion title="Verify recipients">
+    Before sending funds, verify that recipient addresses are correct. For high-value agents, use recipient whitelists in your policy.
+  </Accordion>
+  <Accordion title="Monitor audit logs">
+    Regularly review audit logs to detect unusual activity or operations that fall outside expected patterns.
+  </Accordion>
+</AccordionGroup>

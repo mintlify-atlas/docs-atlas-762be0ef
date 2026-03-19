@@ -1,0 +1,227 @@
+---
+title: "Best practices"
+description: "Recommended patterns for building with Knot"
+---
+
+Follow these guidelines to build reliable, secure, and efficient AI agents with Knot.
+
+## Authentication
+
+<AccordionGroup>
+  <Accordion title="Store tokens securely">
+    Store JWT tokens in environment variables or a secrets manager. Never commit tokens to source control or include them in log output.
+
+    ```bash
+    # Good: environment variable
+    export KNOT_API_TOKEN="eyJhbGciOiJIUzI1NiIs..."
+    ```
+
+    ```python
+    # Bad: hardcoded in source
+    token = "eyJhbGciOiJIUzI1NiIs..."  # Don't do this
+    ```
+  </Accordion>
+
+  <Accordion title="Refresh tokens before expiry">
+    Proactively refresh your token before it expires to avoid mid-operation failures.
+
+    ```python
+    import time
+
+    def ensure_valid_token(token, expiration_time):
+        # Refresh 1 hour before expiration
+        if time.time() > expiration_time - 3600:
+            return reauthenticate()
+        return token
+    ```
+  </Accordion>
+
+  <Accordion title="Handle 401 responses gracefully">
+    Watch for unauthorized responses and re-authenticate automatically rather than surfacing errors to users.
+
+    ```python
+    def api_call(endpoint, token):
+        response = requests.get(endpoint, headers=auth_header(token))
+
+        if response.status_code == 401:
+            token = reauthenticate()
+            response = requests.get(endpoint, headers=auth_header(token))
+
+        return response
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Transactions
+
+<AccordionGroup>
+  <Accordion title="Always use idempotency keys">
+    Include `Idempotency-Key` headers on all financial operations — transfers, trades, and liquidity operations.
+
+    ```python
+    import uuid
+
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Idempotency-Key": f"transfer-{uuid.uuid4()}"
+    }
+    ```
+
+    <Tip>
+      Generate a new idempotency key for each intended operation. Reuse the same key only when retrying after a network timeout.
+    </Tip>
+  </Accordion>
+
+  <Accordion title="Check balances before operating">
+    Verify sufficient funds are available before attempting transfers to avoid unnecessary `400` errors.
+
+    ```python
+    def transfer(to, amount, token):
+        balances = get_balances(token)
+
+        if balances["sol"]["balance"] < amount:
+            raise InsufficientFundsError()
+
+        return execute_transfer(to, amount, token)
+    ```
+  </Accordion>
+
+  <Accordion title="Use appropriate slippage for trades">
+    Set slippage tolerance based on the liquidity profile of the token pair.
+
+    | Pair type | Recommended slippage (bps) |
+    |-----------|----------------------------|
+    | Stable pairs | 10–30 |
+    | Major tokens | 50–100 |
+    | Volatile tokens | 100–300 |
+  </Accordion>
+
+  <Accordion title="Verify recipient addresses">
+    Validate recipient addresses before sending funds. For high-value agents, use a recipient whitelist in your policy.
+
+    ```python
+    def transfer(to, amount, token):
+        if not is_valid_solana_address(to):
+            raise InvalidAddressError()
+
+        if to not in allowed_recipients:
+            raise UnauthorizedRecipientError()
+
+        return execute_transfer(to, amount, token)
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Policy management
+
+<CardGroup cols={2}>
+  <Card title="Start conservative" icon="shield-halved">
+    Begin with low limits ($100 per transaction, $500 daily) and increase them only as you understand your agent's actual needs.
+  </Card>
+  <Card title="Use recipient whitelists" icon="list-check">
+    For high-value agents, configure `allowedRecipients` to restrict which addresses can receive funds.
+  </Card>
+  <Card title="Disable unused features" icon="toggle-off">
+    Turn off trading, liquidity provision, or prediction markets if your agent doesn't use them — this reduces your attack surface.
+  </Card>
+  <Card title="Monitor spending patterns" icon="chart-line">
+    Track daily spending via audit logs before raising limits. Understand normal usage before expanding permissions.
+  </Card>
+</CardGroup>
+
+## Error handling
+
+<AccordionGroup>
+  <Accordion title="Implement exponential backoff for 429 and 503">
+    When you hit rate limits or temporary service errors, wait progressively longer between retries.
+
+    ```python
+    import time
+    import random
+
+    def retry_with_backoff(func, max_retries=5):
+        for attempt in range(max_retries):
+            try:
+                return func()
+            except RateLimitError:
+                wait = (2 ** attempt) + random.uniform(0, 1)
+                time.sleep(wait)
+        raise MaxRetriesExceeded()
+    ```
+  </Accordion>
+
+  <Accordion title="Do not retry 4xx errors without fixing the cause">
+    `4xx` errors indicate a problem with your request — a bad parameter, a policy violation, or an expired token. Fix the underlying issue before retrying.
+
+    <Note>
+      The exception is `401`: you can re-authenticate and retry. For all other `4xx` errors, inspect the `message` field to understand what needs to change.
+    </Note>
+  </Accordion>
+
+  <Accordion title="Generate a new idempotency key when retrying errors">
+    Never reuse an idempotency key after receiving an error response. The cached error will be returned again.
+
+    ```python
+    def safe_transfer(to, amount, token):
+        key = generate_idempotency_key()
+
+        try:
+            return transfer(to, amount, token, key)
+        except TransactionError:
+            # Generate a new key for the retry
+            new_key = generate_idempotency_key()
+            return transfer(to, amount, token, new_key)
+    ```
+  </Accordion>
+
+  <Accordion title="Log all errors with context">
+    Maintain detailed error logs for debugging and monitoring.
+
+    ```python
+    import logging
+
+    def handle_api_error(response):
+        logging.error(
+            f"API Error: {response.status_code} - "
+            f"{response.json().get('message')} "
+            f"Endpoint: {response.url}"
+        )
+    ```
+  </Accordion>
+
+  <Accordion title="Verify on-chain when uncertain">
+    If you're unsure whether a transaction succeeded, check the Solana chain directly rather than assuming success or failure.
+
+    ```python
+    def verify_transaction(signature):
+        status = solana_client.get_signature_status(signature)
+        return status.value.confirmation_status == "finalized"
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Skill discovery
+
+<AccordionGroup>
+  <Accordion title="Fetch skill.md at agent startup">
+    Load the capability spec when your agent initializes so it has accurate API knowledge before making calls.
+
+    ```python
+    def initialize_agent():
+        capabilities = fetch_skill_md()
+        cache_capabilities(capabilities)
+        return Agent(capabilities)
+    ```
+  </Accordion>
+
+  <Accordion title="Cache and refresh periodically">
+    Cache `skill.md` locally to reduce API calls, but re-fetch it daily or weekly to pick up new endpoints and features.
+
+    ```python
+    def refresh_capabilities_if_stale():
+        if cache_age() > timedelta(days=1):
+            capabilities = fetch_skill_md()
+            cache_capabilities(capabilities)
+    ```
+  </Accordion>
+</AccordionGroup>

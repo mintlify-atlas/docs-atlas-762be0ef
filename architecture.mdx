@@ -1,0 +1,81 @@
+---
+title: "Architecture"
+description: "How Knot processes requests and manages transactions"
+---
+
+This page explains how Knot is structured and how a request travels through the system from authentication to on-chain execution.
+
+## Request flow
+
+Every action request — for example, `POST /wallets/me/actions/trade` — passes through the following pipeline before any transaction is signed or broadcast:
+
+<Steps>
+  <Step title="Rate limit check">
+    Knot checks whether the agent is within its request limits using a sliding window rate limiter. Limits apply globally, per IP address, and per agent. Requests that exceed the limit receive a `429 Too Many Requests` response immediately.
+  </Step>
+  <Step title="JWT verification">
+    The `Authorization: Bearer` token is verified for validity and expiration. Invalid or expired tokens receive a `401 Unauthorized` response. No further processing occurs.
+  </Step>
+  <Step title="Policy engine">
+    The policy engine evaluates whether the requested action is permitted for this agent. It checks spending limits, daily caps, feature toggles, and recipient whitelists. Requests that violate policy are rejected before any transaction is constructed.
+  </Step>
+  <Step title="USD value calculation">
+    For actions involving token amounts, Knot fetches the current token price and calculates the USD value of the transaction. This value is used by the policy engine for cap enforcement and is recorded in the audit log.
+  </Step>
+  <Step title="Build transaction">
+    The action layer constructs the appropriate Solana transaction. For trades, this involves routing through Jupiter. For liquidity operations, it targets the relevant Meteora pool. For prediction markets, it interacts with Kalshi.
+  </Step>
+  <Step title="TEE signing">
+    The unsigned transaction is sent to the Trusted Execution Environment. The TEE signs it with the agent's private key inside the secure enclave. The private key never leaves the TEE.
+  </Step>
+  <Step title="Broadcast">
+    The signed transaction is submitted to the Solana network via RPC. Knot waits for confirmation before responding.
+  </Step>
+  <Step title="Audit log">
+    The completed action is recorded in the immutable audit log with all relevant metadata: agent ID, action type, USD-normalized amount, token amounts, transaction signature, and timestamp.
+  </Step>
+  <Step title="Response">
+    Knot returns the transaction signature and a Solana Explorer URL so your agent can verify the on-chain result.
+  </Step>
+</Steps>
+
+## Key components
+
+| Component | Purpose |
+|---|---|
+| **Auth layer** | Handles email OTP verification, JWT issuance, and JWT validation on every request. |
+| **Policy engine** | Enforces per-agent spending limits, daily caps, feature toggles, and recipient whitelists before any transaction is constructed. |
+| **Action layer** | Contains transaction builders for transfers, trades, liquidity provision, and prediction market contracts. |
+| **Rate limiter** | Applies sliding window rate limiting at the global, per-IP, and per-agent levels. |
+| **Audit logger** | Records every action in an immutable log with USD-normalized amounts and full transaction metadata. |
+| **Idempotency** | Deduplicates requests using the optional `Idempotency-Key` request header, preventing duplicate financial transactions on retries. |
+
+## Trusted Execution Environment
+
+Private keys are generated and stored exclusively inside a Trusted Execution Environment (TEE). The TEE is a hardware-isolated secure enclave separate from the main application runtime.
+
+The TEE provides three guarantees:
+
+- **Hardware isolation**: The secure enclave operates independently from the host operating system and application layer. Compromising the application server does not expose keys.
+- **No extraction**: Private keys cannot be read, copied, or exported — not by application code, not by platform operators, and not by infrastructure administrators.
+- **Per-agent isolation**: Each agent receives their own sub-organization within the TEE. One agent's keys are cryptographically isolated from every other agent's keys.
+
+<Note>
+  When an agent authenticates for the first time, a new key pair is generated inside the TEE. The public key (Solana address) is returned to the agent. The private key never leaves the enclave at any point.
+</Note>
+
+## External integrations
+
+Knot integrates directly with established Solana protocols, so your agent can access DeFi without any additional setup or protocol-specific code:
+
+<CardGroup cols={3}>
+  <Card title="Jupiter" icon="arrows-rotate">
+    DEX aggregator for token swaps. Jupiter routes trades across multiple liquidity sources and includes MEV protection to minimize slippage and front-running.
+  </Card>
+  <Card title="Meteora" icon="droplet">
+    DLMM (Dynamic Liquidity Market Maker) pools for liquidity provision. Agents can add and remove liquidity positions programmatically.
+  </Card>
+  <Card title="Kalshi" icon="chart-line">
+    Prediction markets for event-based contracts. Agents can take positions on real-world outcomes using Kalshi's on-chain market infrastructure.
+  </Card>
+</CardGroup>

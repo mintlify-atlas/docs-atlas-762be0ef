@@ -1,80 +1,152 @@
 ---
 title: "Quickstart"
-description: "Start building awesome documentation in minutes"
+description: "Get your AI agent connected to Knot in minutes"
 ---
 
-## Get started in three steps
+This guide walks you through authenticating your AI agent with Knot and making your first API call. The entire process takes under five minutes.
 
-Get your documentation site running locally and make your first customization.
+## Prerequisites
 
-### Step 1: Set up your local environment
+- An email address dedicated to your agent
+- The ability to receive and read emails from that address (or manual OTP retrieval during development)
 
-<AccordionGroup>
-  <Accordion icon="copy" title="Clone your docs locally">
-    During the onboarding process, you created a GitHub repository with your docs content if you didn't already have one. You can find a link to this repository in your [dashboard](https://dashboard.mintlify.com).
-    
-    To clone the repository locally so that you can make and preview changes to your docs, follow the [Cloning a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) guide in the GitHub docs.
-  </Accordion>
-  <Accordion icon="rectangle-terminal" title="Start the preview server">
-    1. Install the Mintlify CLI: `npm i -g mint`
-    2. Navigate to your docs directory and run: `mint dev`
-    3. Open `http://localhost:3000` to see your docs live!
-    
-    <Tip>Your preview updates automatically as you edit files.</Tip>
-  </Accordion>
-</AccordionGroup>
+## Authentication flow
 
-### Step 2: Deploy your changes
+Knot uses a passwordless email OTP flow. Your agent never manages a private key — it authenticates with an email address and receives a JWT token for all subsequent API calls.
 
-<AccordionGroup>
-  <Accordion icon="github" title="Install our GitHub app">
-    Install the Mintlify GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app).
-    
-    Our GitHub app automatically deploys your changes to your docs site, so you don't need to manage deployments yourself.
-</Accordion>
-<Accordion icon="palette" title="Update your site name and colors">
-    For a first change, let's update the name and colors of your docs site.
+<Steps>
+  <Step title="Request an OTP">
+    Send a `POST` request to start the authentication process. Replace `agent@example.com` with your agent's email address.
 
-    1. Open `docs.json` in your editor.
-    2. Change the `"name"` field to your project name.
-    3. Update the `"colors"` to match your brand.
-    4. Save and see your changes instantly at `http://localhost:3000`.
+    ```bash
+    curl -X POST https://api.useknot.xyz/connect/start \
+      -H "Content-Type: application/json" \
+      -d '{"email": "agent@example.com"}'
+    ```
 
-    <Tip>Try changing the primary color to see an immediate difference!</Tip>
-  </Accordion>
-</AccordionGroup>
+    Knot responds with an `otpId` that you'll use in the next step:
 
-### Step 3: Go live
+    ```json
+    {
+      "status": true,
+      "statusCode": 200,
+      "message": "OTP sent successfully.",
+      "data": {
+        "otpId": "uuid-of-otp-request"
+      }
+    }
+    ```
+  </Step>
 
-<Accordion icon="rocket" title="Publish your docs">
-  1. Commit and push your changes.
-  2. Your docs will update and be live in moments!
-</Accordion>
+  <Step title="Retrieve the OTP code">
+    Check the email inbox for a 6-digit OTP code. The code expires after 10 minutes.
+
+    <Note>
+      During development you can retrieve the OTP manually. In production, your agent should read the OTP from the email inbox automatically using an email API or IMAP.
+    </Note>
+  </Step>
+
+  <Step title="Complete authentication">
+    Submit the OTP code along with the `otpId` from step 1:
+
+    ```bash
+    curl -X POST https://api.useknot.xyz/connect/complete \
+      -H "Content-Type: application/json" \
+      -d '{
+        "email": "agent@example.com",
+        "otpId": "uuid-from-start",
+        "otpCode": "123456"
+      }'
+    ```
+
+    On success, Knot returns your API token and Solana wallet address:
+
+    ```json
+    {
+      "status": true,
+      "statusCode": 200,
+      "message": "Authentication successful. Wallet created.",
+      "data": {
+        "apiToken": "eyJhbGciOiJIUzI1NiIs...",
+        "solanaAddress": "7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU",
+        "username": "agent_abc123",
+        "isNewAgent": true
+      }
+    }
+    ```
+  </Step>
+
+  <Step title="Store your token">
+    Save the `apiToken` value securely. You'll include it as a `Bearer` token in every subsequent API request.
+
+    <Warning>
+      Treat your `apiToken` like a password. Do not log it, commit it to source control, or expose it in client-side code.
+    </Warning>
+  </Step>
+</Steps>
+
+## What happens on first authentication
+
+When your agent authenticates for the first time, Knot automatically:
+
+1. Creates a new Solana wallet inside the TEE
+2. Provisions a sub-organization to isolate your agent's keys
+3. Applies the default policy (spending limits, feature access)
+4. Returns your agent's Solana address and JWT token
+
+On subsequent authentications, the same wallet and address are returned — no new wallet is created.
+
+## Make your first API call
+
+Use your token to check your wallet balance:
+
+```bash
+curl https://api.useknot.xyz/wallets/me/balances \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIs..."
+```
+
+A new wallet will show zero balances:
+
+```json
+{
+  "status": true,
+  "data": {
+    "solanaAddress": "7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU",
+    "sol": {
+      "balance": 0,
+      "usdValue": 0
+    },
+    "tokens": [],
+    "totalUsdValue": 0
+  }
+}
+```
+
+Fund your wallet by sending SOL or SPL tokens to the `solanaAddress` returned above.
+
+## Token expiration
+
+Tokens expire after **7 days** (168 hours) by default. You can configure a different expiration per agent via the `sessionExpirationHours` field in your agent's policy.
+
+When a token expires, your agent receives a `401 Unauthorized` response. Handle this by re-running the OTP flow to obtain a new token.
+
+<Tip>
+  Implement proactive token refresh before the expiration window closes. Store the token issue time alongside the token itself, and trigger re-authentication at least one hour before expiry.
+</Tip>
 
 ## Next steps
 
-Now that you have your docs running, explore these key features:
-
 <CardGroup cols={2}>
-
-<Card title="Write Content" icon="pen-to-square" href="/essentials/markdown">
-  Learn MDX syntax and start writing your documentation.
-</Card>
-
-<Card title="Customize style" icon="palette" href="/essentials/settings">
-  Make your docs match your brand perfectly.
-</Card>
-
-<Card title="Add code examples" icon="square-code" href="/essentials/code">
-  Include syntax-highlighted code blocks.
-</Card>
-
-<Card title="API documentation" icon="code" href="/api-reference/introduction">
-  Auto-generate API docs from OpenAPI specs.
-</Card>
-
+  <Card title="Transfer tokens" icon="paper-plane" href="/transfers">
+    Send SOL and SPL tokens to any Solana address.
+  </Card>
+  <Card title="Trade tokens" icon="arrows-rotate" href="/trading">
+    Swap tokens via the Jupiter aggregator with MEV protection.
+  </Card>
+  <Card title="Policy engine" icon="shield" href="/policies">
+    Configure spending limits, daily caps, and recipient whitelists.
+  </Card>
+  <Card title="API reference" icon="code" href="/api-reference/introduction">
+    Explore all available endpoints with full request and response examples.
+  </Card>
 </CardGroup>
-
-<Note>
-  **Need help?** See our [full documentation](https://mintlify.com/docs) or join our [community](https://mintlify.com/community).
-</Note>

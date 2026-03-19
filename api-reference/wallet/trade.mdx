@@ -1,0 +1,101 @@
+---
+title: "Trade tokens"
+description: "Swap tokens via the Jupiter aggregator"
+api: "POST /wallets/me/actions/trade"
+---
+
+Executes a token swap using the Jupiter aggregator, automatically routing through the best available liquidity pools.
+
+<Note>
+  Requires authentication via Bearer token. Trading must be enabled in the agent's policy (`allowTrading: true`).
+</Note>
+
+<Warning>
+  Trades are subject to your agent's policy limits. If the trade value exceeds `maxSingleTransactionInUsd` or the daily limit, the request is rejected. Enable trading and configure limits via [Update policy](/api-reference/policy/update).
+</Warning>
+
+## Request body
+
+<ParamField body="from" type="string" required>
+  Source token to swap from. Accepts a token symbol (e.g., `USDC`) or mint address.
+</ParamField>
+
+<ParamField body="to" type="string" required>
+  Destination token to swap to. Accepts a token symbol (e.g., `SOL`) or mint address.
+</ParamField>
+
+<ParamField body="amount" type="number" required>
+  Amount of the source token to swap.
+</ParamField>
+
+<ParamField body="slippageBps" type="number" default="50">
+  Maximum acceptable slippage in basis points. `50` equals 0.5%. The transaction fails if the actual slippage exceeds this value.
+</ParamField>
+
+## Response
+
+<ResponseField name="status" type="boolean">
+  `true` when the trade succeeds.
+</ResponseField>
+
+<ResponseField name="data" type="object">
+  <Expandable title="properties">
+    <ResponseField name="signature" type="string">
+      On-chain transaction signature.
+    </ResponseField>
+    <ResponseField name="explorerUrl" type="string">
+      Solscan link to inspect the transaction.
+    </ResponseField>
+    <ResponseField name="inputAmount" type="string">
+      Amount of the source token spent, with symbol (e.g., `50 USDC`).
+    </ResponseField>
+    <ResponseField name="outputAmount" type="string">
+      Amount of the destination token received, with symbol (e.g., `0.581 SOL`).
+    </ResponseField>
+    <ResponseField name="priceImpact" type="string">
+      Price impact of the trade as a percentage (e.g., `0.01%`).
+    </ResponseField>
+    <ResponseField name="route" type="array">
+      List of DEX protocols used in the swap route (e.g., `["Raydium", "Orca"]`).
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Errors
+
+| Status | Description |
+|--------|-------------|
+| `400` | Invalid token symbol, amount, or slippage value |
+| `401` | Missing or invalid Bearer token |
+| `403` | Trading disabled by agent policy |
+| `429` | Rate limit exceeded |
+
+<RequestExample>
+```bash cURL
+curl -X POST https://api.useknot.xyz/wallets/me/actions/trade \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "from": "USDC",
+    "to": "SOL",
+    "amount": 50,
+    "slippageBps": 50
+  }'
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200
+{
+  "status": true,
+  "data": {
+    "signature": "4kLmN9xR...",
+    "explorerUrl": "https://solscan.io/tx/4kLmN9xR...",
+    "inputAmount": "50 USDC",
+    "outputAmount": "0.581 SOL",
+    "priceImpact": "0.01%",
+    "route": ["Raydium", "Orca"]
+  }
+}
+```
+</ResponseExample>

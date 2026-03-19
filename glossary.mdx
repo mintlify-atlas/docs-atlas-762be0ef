@@ -1,0 +1,76 @@
+---
+title: "Glossary"
+description: "Key terms and concepts used in Knot documentation"
+---
+
+This glossary defines key terms and concepts you'll encounter throughout the Knot documentation.
+
+<AccordionGroup>
+  <Accordion title="Agent">
+    An AI system that uses Knot to autonomously manage Solana funds. Each agent has its own isolated wallet, policy, and sub-organization within the TEE.
+  </Accordion>
+
+  <Accordion title="Basis points (bps)">
+    A unit of measurement for percentages in financial contexts. 100 basis points equals 1%. Used to express slippage tolerance for trades — for example, 50 bps means 0.5% slippage.
+  </Accordion>
+
+  <Accordion title="DEX">
+    Decentralized Exchange. A protocol for trading tokens on-chain without a central intermediary. Knot's trading actions route through Jupiter, which aggregates liquidity across multiple Solana DEXes.
+  </Accordion>
+
+  <Accordion title="DeFi">
+    Decentralized Finance. Financial applications and protocols built on blockchains. Knot enables AI agents to participate in Solana DeFi — including token swaps, liquidity provision, and prediction markets.
+  </Accordion>
+
+  <Accordion title="DLMM">
+    Dynamic Liquidity Market Maker. Meteora's automated market maker (AMM) design that concentrates liquidity around the current price to improve capital efficiency. Knot supports adding and removing liquidity in DLMM pools.
+  </Accordion>
+
+  <Accordion title="Idempotency">
+    The property that performing the same operation multiple times has the same effect as performing it once. Knot supports idempotency via the `Idempotency-Key` header, which prevents duplicate transactions when requests are retried.
+  </Accordion>
+
+  <Accordion title="Idempotency key">
+    A unique string passed in the `Idempotency-Key` request header to identify a specific operation. If the same key is submitted within 24 hours, Knot returns the cached original response without re-executing the operation.
+  </Accordion>
+
+  <Accordion title="JWT">
+    JSON Web Token. A cryptographically signed credential used to authenticate API requests. After verifying your OTP, Knot issues a JWT that you pass as a `Bearer` token in the `Authorization` header. JWTs expire after a configurable period (default: 168 hours).
+  </Accordion>
+
+  <Accordion title="MEV">
+    Maximal Extractable Value. Profit that can be extracted by reordering, including, or excluding transactions in a block. Knot's transaction simulation and pattern detection help protect agents from common MEV attacks such as front-running.
+  </Accordion>
+
+  <Accordion title="OTP">
+    One-Time Password. A 6-digit code sent to your email address to authenticate without a password. OTP codes are valid for 10 minutes and are automatically purged after use.
+  </Accordion>
+
+  <Accordion title="Policy engine">
+    The server-side rules engine that governs what an agent is allowed to do. Policies define spending limits, daily caps, recipient whitelists, and feature toggles. All checks run before any transaction is signed.
+  </Accordion>
+
+  <Accordion title="skill.md">
+    A machine-readable markdown file served at `https://api.useknot.xyz/skill.md` that describes Knot's full API surface. AI agents can fetch this file at startup to dynamically discover available capabilities without hardcoded API knowledge.
+  </Accordion>
+
+  <Accordion title="Slippage">
+    The acceptable difference between the expected price and the actual execution price of a trade. Expressed in basis points. Higher slippage tolerance increases the chance of execution but may result in a worse price.
+  </Accordion>
+
+  <Accordion title="SOL">
+    The native token of the Solana blockchain, used to pay for transaction fees (gas). Knot wallets hold SOL alongside any SPL tokens.
+  </Accordion>
+
+  <Accordion title="SPL token">
+    Solana Program Library token. The standard for fungible tokens on Solana, analogous to ERC-20 on Ethereum. USDC, USDT, and most Solana ecosystem tokens are SPL tokens.
+  </Accordion>
+
+  <Accordion title="Sub-organization">
+    An isolated organizational unit within the TEE that holds the keys for a single agent. Sub-organizations ensure that one agent's keys are never accessible to another agent, even if they share the same platform.
+  </Accordion>
+
+  <Accordion title="TEE">
+    Trusted Execution Environment. A hardware-isolated secure enclave that provides confidentiality and integrity guarantees for code and data running inside it. Knot uses a TEE to generate and store private keys — even Knot operators cannot extract keys from the enclave.
+  </Accordion>
+</AccordionGroup>

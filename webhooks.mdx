@@ -1,0 +1,125 @@
+---
+title: "Webhooks"
+description: "Receive real-time notifications for wallet events"
+---
+
+Knot integrates with Helius to receive enhanced transaction notifications for your agent's wallet. Webhooks let you react to incoming transfers, trade confirmations, and other on-chain events in real time.
+
+## Helius integration
+
+Knot uses Helius to process and enrich transaction data before delivering webhook events. The webhook endpoint receives parsed, human-readable transaction data rather than raw Solana transaction bytes.
+
+<Note>
+  Webhook configuration is managed server-side. Contact support to enable webhooks for your agent.
+</Note>
+
+## Webhook endpoint
+
+Knot exposes an endpoint that Helius posts events to:
+
+```
+POST /webhooks/helius
+```
+
+This endpoint is called by Helius, not by your application. You do not call this endpoint directly.
+
+## Payload format
+
+Helius delivers enhanced transaction data in its standard webhook format:
+
+```json
+{
+  "type": "TRANSFER",
+  "source": "HELIUS",
+  "signature": "5UfgJ3vN...",
+  "timestamp": 1679012345,
+  "nativeTransfers": [
+    {
+      "fromUserAccount": "SourceAddress...",
+      "toUserAccount": "DestAddress...",
+      "amount": 1000000000
+    }
+  ],
+  "tokenTransfers": [
+    {
+      "fromUserAccount": "SourceAddress...",
+      "toUserAccount": "DestAddress...",
+      "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "tokenAmount": 100.0
+    }
+  ]
+}
+```
+
+### Payload fields
+
+<ResponseField name="type" type="string">
+  The event type. See [event types](#event-types) below.
+</ResponseField>
+
+<ResponseField name="source" type="string">
+  Always `"HELIUS"` for Helius-delivered webhooks.
+</ResponseField>
+
+<ResponseField name="signature" type="string">
+  The Solana transaction signature. Use this to look up the transaction on-chain.
+</ResponseField>
+
+<ResponseField name="timestamp" type="number">
+  Unix timestamp of when the transaction was confirmed.
+</ResponseField>
+
+<ResponseField name="nativeTransfers" type="array">
+  List of native SOL transfers in this transaction, with sender, recipient, and lamport amount.
+</ResponseField>
+
+<ResponseField name="tokenTransfers" type="array">
+  List of SPL token transfers in this transaction, with sender, recipient, token mint address, and amount.
+</ResponseField>
+
+## Event types
+
+| Type | Description |
+|------|-------------|
+| `TRANSFER` | Native SOL or SPL token transfer |
+| `SWAP` | Token swap via a DEX |
+| `NFT_SALE` | NFT purchase or sale |
+| `NFT_MINT` | NFT minting event |
+
+## Use cases
+
+<CardGroup cols={2}>
+  <Card title="Balance updates" icon="wallet">
+    Refresh your internal balance cache when transactions are confirmed on-chain.
+  </Card>
+  <Card title="Notifications" icon="bell">
+    Trigger alerts or agent actions when the wallet receives incoming funds.
+  </Card>
+  <Card title="Incoming transfers" icon="arrow-down">
+    Track deposits and incoming payments from external sources.
+  </Card>
+  <Card title="Transaction confirmations" icon="check">
+    Confirm that outgoing transactions have settled and been finalized.
+  </Card>
+</CardGroup>
+
+## Setup overview
+
+<Steps>
+  <Step title="Contact support">
+    Reach out to the Knot team to enable Helius webhooks for your agent.
+  </Step>
+  <Step title="Provide your wallet address">
+    Supply your agent's wallet address so Knot can configure the Helius subscription for your account.
+  </Step>
+  <Step title="Receive events">
+    Knot begins receiving Helius events for your wallet. Balance state and audit logs are updated in real time.
+  </Step>
+  <Step title="React to events">
+    Poll for updated balances or use audit logs to detect incoming transfers and take action.
+  </Step>
+</Steps>
+
+<Note>
+  Native SOL amounts in webhook payloads are denominated in lamports. Divide by 1,000,000,000 to convert to SOL.
+</Note>

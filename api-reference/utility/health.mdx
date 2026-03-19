@@ -1,0 +1,37 @@
+---
+title: "Health check"
+description: "Check API server health status"
+api: "GET /health"
+---
+
+Returns the current health status of the API server. Use this endpoint to confirm the API is reachable before making authenticated calls.
+
+<Info>
+  This endpoint does not require authentication.
+</Info>
+
+## Response
+
+<ResponseField name="status" type="string">
+  Server health status. Returns `ok` when the API is operating normally.
+</ResponseField>
+
+## Errors
+
+| Status | Description |
+|--------|-------------|
+| `503` | Service unavailable |
+
+<RequestExample>
+```bash cURL
+curl https://api.useknot.xyz/health
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200
+{
+  "status": "ok"
+}
+```
+</ResponseExample>

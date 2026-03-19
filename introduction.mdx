@@ -1,0 +1,66 @@
+---
+title: "Introduction"
+description: "Server-side Solana wallet infrastructure for AI agents"
+---
+
+Knot is a server-side Solana wallet infrastructure designed specifically for AI agents. It enables autonomous agents to hold funds, sign transactions, and interact with DeFi protocols without human intervention — and without ever handling a private key.
+
+Agents authenticate via API using a passwordless email OTP flow. They call action-based endpoints like `POST /actions/trade` or `POST /actions/transfer-solana` rather than constructing and signing raw transactions themselves. Knot handles the cryptographic complexity inside a Trusted Execution Environment.
+
+## Key features
+
+<CardGroup cols={2}>
+  <Card title="No private key exposure" icon="lock">
+    Private keys are generated and stored inside a Trusted Execution Environment (TEE). They never leave the secure enclave — not even platform operators can retrieve them.
+  </Card>
+  <Card title="Action-based API" icon="bolt">
+    Agents call semantic endpoints instead of building transactions. `POST /actions/trade`, `POST /actions/transfer-solana`, and similar endpoints abstract away transaction construction entirely.
+  </Card>
+  <Card title="Built-in policy engine" icon="shield">
+    Every agent has configurable spending limits, daily caps, and recipient whitelists. The policy engine enforces these rules before any transaction reaches the signing step.
+  </Card>
+  <Card title="Multi-protocol support" icon="diagram-project">
+    Native integrations with Jupiter for token swaps, Meteora for liquidity provision, and Kalshi for prediction markets — no additional setup required.
+  </Card>
+  <Card title="Idempotent transactions" icon="rotate">
+    Pass an `Idempotency-Key` header to prevent duplicate financial transactions. Knot deduplicates requests automatically, making retries safe.
+  </Card>
+  <Card title="Passwordless authentication" icon="envelope">
+    Agents authenticate with an email address and a one-time passcode. No passwords, no private key management, no seed phrase storage.
+  </Card>
+</CardGroup>
+
+## Who is Knot for?
+
+Knot is built for developers and teams who need autonomous software to hold and move value on Solana:
+
+- **AI agent developers**: Build agents that can autonomously manage funds, trade, and interact with DeFi without embedding wallet logic in your agent code.
+- **Trading bot creators**: Run strategies that execute trades and manage positions without exposing private keys in your infrastructure.
+- **Autonomous systems**: Any software pipeline that needs to hold, receive, or send value on Solana — payments, yield farming, rebalancing bots, and more.
+
+## Agent discovery
+
+Knot exposes a machine-readable API specification at `/skill.md`. This endpoint lets agents discover wallet capabilities automatically without requiring code changes when new features are added.
+
+When your agent fetches `/skill.md` at startup, it receives a structured description of every available action, its parameters, and its constraints. This makes your agent forward-compatible: as Knot adds new endpoints, your agent can discover and use them without a redeploy.
+
+<Tip>
+  Point your agent at `https://api.useknot.xyz/skill.md` during initialization to auto-discover all available actions.
+</Tip>
+
+## Get started
+
+<CardGroup cols={2}>
+  <Card title="Quickstart" icon="rocket" href="/quickstart">
+    Authenticate your agent and make your first API call in minutes.
+  </Card>
+  <Card title="API reference" icon="code" href="/api-reference/introduction">
+    Explore every available endpoint with request and response examples.
+  </Card>
+  <Card title="Architecture" icon="sitemap" href="/architecture">
+    Understand how Knot processes requests, enforces policies, and manages keys.
+  </Card>
+  <Card title="Security" icon="shield-halved" href="/security">
+    Learn about the TEE-based security model and how private keys are protected.
+  </Card>
+</CardGroup>

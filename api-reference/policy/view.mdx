@@ -1,0 +1,81 @@
+---
+title: "View policy"
+description: "Get the current policy settings for the agent"
+api: "GET /wallets/me/policy"
+---
+
+Returns the agent's current policy configuration, including spending limits, allowed recipients, and feature permissions.
+
+<Note>
+  Requires authentication via Bearer token.
+</Note>
+
+## Response
+
+<ResponseField name="status" type="boolean">
+  `true` when the request succeeds.
+</ResponseField>
+
+<ResponseField name="data" type="object">
+  <Expandable title="properties">
+    <ResponseField name="policy" type="object">
+      The agent's active policy settings.
+      <Expandable title="properties">
+        <ResponseField name="maxSingleTransactionInUsd" type="number">
+          Maximum USD value allowed per individual transaction.
+        </ResponseField>
+        <ResponseField name="dailyLimitInUsd" type="number">
+          Maximum total USD value allowed across all transactions in a 24-hour period.
+        </ResponseField>
+        <ResponseField name="allowedRecipients" type="array">
+          Whitelist of Solana addresses permitted to receive transfers. An empty array means all recipients are allowed.
+        </ResponseField>
+        <ResponseField name="allowTrading" type="boolean">
+          `true` if the agent can execute token swaps via the [trade endpoint](/api-reference/wallet/trade).
+        </ResponseField>
+        <ResponseField name="allowLiquidityProvision" type="boolean">
+          `true` if the agent can provide liquidity to pools.
+        </ResponseField>
+        <ResponseField name="allowPredictionMarkets" type="boolean">
+          `true` if the agent can interact with prediction market contracts.
+        </ResponseField>
+        <ResponseField name="sessionExpirationHours" type="number">
+          JWT token validity period in hours. Default is `168` (7 days).
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Errors
+
+| Status | Description |
+|--------|-------------|
+| `401` | Missing or invalid Bearer token |
+| `429` | Rate limit exceeded |
+
+<RequestExample>
+```bash cURL
+curl https://api.useknot.xyz/wallets/me/policy \
+  -H "Authorization: Bearer <token>"
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200
+{
+  "status": true,
+  "data": {
+    "policy": {
+      "maxSingleTransactionInUsd": 100,
+      "dailyLimitInUsd": 500,
+      "allowedRecipients": [],
+      "allowTrading": true,
+      "allowLiquidityProvision": true,
+      "allowPredictionMarkets": true,
+      "sessionExpirationHours": 168
+    }
+  }
+}
+```
+</ResponseExample>

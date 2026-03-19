@@ -1,0 +1,92 @@
+---
+title: "Complete authentication"
+description: "Complete OTP verification and receive an API token"
+api: "POST /connect/complete"
+---
+
+This is the second step of the authentication flow. Submit the OTP code from email to receive a JWT token. On first authentication, Knot automatically creates a Solana wallet for the agent.
+
+<Info>
+This endpoint does not require authentication. No `Authorization` header is needed.
+</Info>
+
+## Request body
+
+<ParamField body="email" type="string" required>
+  Email address used in the [start authentication](/api-reference/auth/start) request.
+</ParamField>
+
+<ParamField body="otpId" type="string" required>
+  OTP request ID returned by the start endpoint.
+</ParamField>
+
+<ParamField body="otpCode" type="string" required>
+  6-digit OTP code received by email. The code expires after 10 minutes.
+</ParamField>
+
+## Response
+
+<ResponseField name="status" type="boolean">
+  `true` when authentication succeeds.
+</ResponseField>
+
+<ResponseField name="statusCode" type="number">
+  HTTP status code.
+</ResponseField>
+
+<ResponseField name="message" type="string">
+  Human-readable result message.
+</ResponseField>
+
+<ResponseField name="data" type="object">
+  <Expandable title="properties">
+    <ResponseField name="apiToken" type="string">
+      JWT token for authenticating future API requests. Store this securely.
+    </ResponseField>
+    <ResponseField name="solanaAddress" type="string">
+      The agent's Solana wallet address.
+    </ResponseField>
+    <ResponseField name="username" type="string">
+      Auto-generated username for the agent.
+    </ResponseField>
+    <ResponseField name="isNewAgent" type="boolean">
+      `true` if this is the agent's first authentication. A new wallet is created on first login.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Errors
+
+| Status | Description |
+|--------|-------------|
+| `400` | Missing or invalid request fields |
+| `401` | Invalid or expired OTP code |
+| `429` | Rate limit exceeded |
+
+<RequestExample>
+```bash cURL
+curl -X POST https://api.useknot.xyz/connect/complete \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "agent@example.com",
+    "otpId": "550e8400-e29b-41d4-a716-446655440000",
+    "otpCode": "123456"
+  }'
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200
+{
+  "status": true,
+  "statusCode": 200,
+  "message": "Authentication successful. Wallet created.",
+  "data": {
+    "apiToken": "eyJhbGciOiJIUzI1NiIs...",
+    "solanaAddress": "7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU",
+    "username": "agent_abc123",
+    "isNewAgent": true
+  }
+}
+```
+</ResponseExample>

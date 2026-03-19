@@ -1,122 +1,100 @@
 {
   "$schema": "https://mintlify.com/docs.json",
-  "theme": "mint",
-  "name": "Mint Starter Kit",
+  "name": "Knot Wallet",
+  "theme": "sequoia",
   "colors": {
-    "primary": "#16A34A",
-    "light": "#07C983",
-    "dark": "#15803D"
+    "primary": "#cb0404",
+    "light": "#f3d2d2",
+    "dark": "#e37b84"
   },
   "favicon": "/favicon.svg",
+  "navbar": {
+    "primary": {
+      "type": "github",
+      "href": "https://github.com/codewithmide/read"
+    }
+  },
+  "footer": {
+    "socials": {
+      "github": "https://github.com/codewithmide/read",
+      "x": "https://x.com/useknot"
+    }
+  },
+  "api": {
+    "baseUrl": "https://api.useknot.xyz"
+  },
   "navigation": {
     "tabs": [
       {
-        "tab": "Guides",
+        "tab": "Documentation",
         "groups": [
           {
-            "group": "Getting started",
-            "pages": [
-              "index",
-              "quickstart",
-              "development"
-            ]
+            "group": "Getting Started",
+            "pages": ["introduction", "quickstart", "architecture"]
           },
           {
-            "group": "Customization",
-            "pages": [
-              "essentials/settings",
-              "essentials/navigation"
-            ]
+            "group": "Core Features",
+            "pages": ["transfers", "trading", "liquidity", "predictions"]
           },
           {
-            "group": "Writing content",
-            "pages": [
-              "essentials/markdown",
-              "essentials/code",
-              "essentials/images",
-              "essentials/reusable-snippets"
-            ]
+            "group": "Security & Policies",
+            "pages": ["policies", "security"]
           },
           {
-            "group": "AI tools",
+            "group": "Advanced",
             "pages": [
-              "ai-tools/cursor",
-              "ai-tools/claude-code",
-              "ai-tools/windsurf"
+              "errors",
+              "idempotency",
+              "webhooks",
+              "skill-discovery",
+              "best-practices",
+              "glossary"
             ]
           }
         ]
       },
       {
-        "tab": "API reference",
+        "tab": "API Reference",
         "groups": [
           {
-            "group": "API documentation",
+            "group": "Overview",
+            "pages": ["api-reference/introduction"]
+          },
+          {
+            "group": "Authentication",
             "pages": [
-              "api-reference/introduction"
+              "api-reference/auth/start",
+              "api-reference/auth/complete",
+              "api-reference/auth/validate",
+              "api-reference/auth/refresh"
             ]
           },
           {
-            "group": "Endpoint examples",
+            "group": "Wallet",
             "pages": [
-              "api-reference/endpoint/get",
-              "api-reference/endpoint/create",
-              "api-reference/endpoint/delete",
-              "api-reference/endpoint/webhook"
+              "api-reference/wallet/balances",
+              "api-reference/wallet/history",
+              "api-reference/wallet/transfer",
+              "api-reference/wallet/trade"
+            ]
+          },
+          {
+            "group": "Policy",
+            "pages": [
+              "api-reference/policy/view",
+              "api-reference/policy/update"
+            ]
+          },
+          {
+            "group": "Utility",
+            "pages": [
+              "api-reference/utility/health",
+              "api-reference/utility/tokens",
+              "api-reference/utility/skill"
             ]
           }
         ]
       }
-    ],
-    "global": {
-      "anchors": [
-        {
-          "anchor": "Documentation",
-          "href": "https://mintlify.com/docs",
-          "icon": "book-open-cover"
-        },
-        {
-          "anchor": "Blog",
-          "href": "https://mintlify.com/blog",
-          "icon": "newspaper"
-        }
-      ]
-    }
-  },
-  "logo": {
-    "light": "/logo/light.svg",
-    "dark": "/logo/dark.svg"
-  },
-  "navbar": {
-    "links": [
-      {
-        "label": "Support",
-        "href": "mailto:hi@mintlify.com"
-      }
-    ],
-    "primary": {
-      "type": "button",
-      "label": "Dashboard",
-      "href": "https://dashboard.mintlify.com"
-    }
-  },
-  "contextual": {
-    "options": [
-     "copy",
-     "view",
-     "chatgpt",
-     "claude",
-     "perplexity",
-     "mcp",
-     "cursor",
-     "vscode"
-   ]
-  },
-  "footer": {
-    "socials": {
-      "x": "https://x.com/mintlify",
-      "github": "https://github.com/mintlify",
-      "linkedin": "https://linkedin.com/company/mintlify"
-    }
+    ]
   }
 }

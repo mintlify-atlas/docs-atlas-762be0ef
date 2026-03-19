@@ -1,0 +1,180 @@
+---
+title: "Error handling"
+description: "HTTP status codes and error response formats"
+---
+
+All errors follow a consistent format with clear messages to help you diagnose and resolve issues quickly.
+
+## Error response format
+
+Every error response from the Knot API uses the same JSON structure:
+
+```json
+{
+  "status": false,
+  "statusCode": 400,
+  "message": "Human-readable error description.",
+  "data": null
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `status` | boolean | Always `false` for error responses |
+| `statusCode` | number | The HTTP status code |
+| `message` | string | A human-readable description of the error |
+| `data` | null | Always `null` for error responses |
+
+## HTTP status codes
+
+| Code | Meaning | How to handle |
+|------|---------|---------------|
+| `400` | Bad Request | Check your request parameters and body format |
+| `401` | Unauthorized | Re-authenticate to obtain a new token |
+| `403` | Forbidden | Check policy settings or feature access permissions |
+| `404` | Not Found | Verify the resource exists |
+| `409` | Conflict | Request already processed (idempotency match) |
+| `429` | Too Many Requests | Implement backoff and retry after a delay |
+| `500` | Internal Error | Retry with exponential backoff |
+| `503` | Service Unavailable | RPC connection failed — retry later |
+
+<Warning>
+  When you receive a `429` response, do not immediately retry. Implement exponential backoff to avoid being blocked for longer periods.
+</Warning>
+
+## Common error scenarios
+
+<AccordionGroup>
+  <Accordion title="Invalid OTP">
+    ```json
+    {
+      "status": false,
+      "statusCode": 401,
+      "message": "Invalid or expired OTP code.",
+      "data": null
+    }
+    ```
+
+    **Cause**: The OTP code is incorrect or has expired. OTP codes are valid for 10 minutes.
+
+    **Solution**: Request a new OTP and retry authentication.
+  </Accordion>
+
+  <Accordion title="Insufficient balance">
+    ```json
+    {
+      "status": false,
+      "statusCode": 400,
+      "message": "Insufficient balance. Have 0.5 SOL, need 1.0 SOL.",
+      "data": null
+    }
+    ```
+
+    **Cause**: The wallet doesn't have enough funds for the requested operation.
+
+    **Solution**: Check balances before operations and ensure sufficient funds are available.
+  </Accordion>
+
+  <Accordion title="Policy violation">
+    ```json
+    {
+      "status": false,
+      "statusCode": 403,
+      "message": "Transaction would exceed daily USD limit of $500. Already spent: $450.00 today.",
+      "data": null
+    }
+    ```
+
+    **Cause**: The transaction violates the agent's policy settings.
+
+    **Solution**: Wait for the daily limit to reset, increase the limit via policy update, or reduce the transaction size.
+  </Accordion>
+
+  <Accordion title="Token expired">
+    ```json
+    {
+      "status": false,
+      "statusCode": 401,
+      "message": "Token expired.",
+      "data": null
+    }
+    ```
+
+    **Cause**: The JWT token has reached its expiration time.
+
+    **Solution**: Re-authenticate to obtain a new token.
+  </Accordion>
+
+  <Accordion title="Rate limited">
+    ```json
+    {
+      "status": false,
+      "statusCode": 429,
+      "message": "Too many requests. Please wait before retrying.",
+      "data": null
+    }
+    ```
+
+    **Cause**: Your request rate has exceeded the per-IP or per-agent limit.
+
+    **Solution**: Implement exponential backoff and retry after waiting.
+  </Accordion>
+</AccordionGroup>
+
+## Error handling patterns
+
+### Exponential backoff
+
+For `429` and `503` errors, wait progressively longer between retries:
+
+```python
+import time
+import random
+
+def request_with_backoff(make_request, max_retries=5):
+    for attempt in range(max_retries):
+        response = make_request()
+
+        if response.status_code == 429 or response.status_code == 503:
+            wait_time = (2 ** attempt) + random.uniform(0, 1)
+            time.sleep(wait_time)
+            continue
+
+        return response
+
+    raise Exception("Max retries exceeded")
+```
+
+### Handle authentication errors
+
+Watch for `401` responses and re-authenticate automatically:
+
+```python
+def authenticated_request(url, token):
+    response = requests.get(url, headers={"Authorization": f"Bearer {token}"})
+
+    if response.status_code == 401:
+        token = reauthenticate()
+        response = requests.get(url, headers={"Authorization": f"Bearer {token}"})
+
+    return response
+```
+
+### Log all errors
+
+Maintain detailed error logs for debugging:
+
+```python
+def handle_error(response):
+    error = response.json()
+
+    logging.error(
+        f"API Error: {error['message']} "
+        f"(status: {error['statusCode']}, "
+        f"endpoint: {response.url})"
+    )
+```
+
+<Warning>
+  Never retry a failed transaction without generating a new idempotency key. Using the same key may return a cached error response rather than retrying the operation.
+</Warning>

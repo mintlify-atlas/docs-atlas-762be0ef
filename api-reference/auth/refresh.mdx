@@ -1,0 +1,62 @@
+---
+title: "Refresh token"
+description: "Issue a new session token if the current one is still valid"
+api: "POST /connect/refresh"
+---
+
+Use this endpoint to obtain a fresh JWT token without re-authenticating via OTP. The current token must still be valid. Call this before your token expires to avoid service interruptions.
+
+<Note>
+  Requires authentication via Bearer token.
+</Note>
+
+<Tip>
+  Implement proactive token refresh in your agent before the expiration timestamp returned by [validate token](/api-reference/auth/validate). Handle `401` errors by re-authenticating via the full OTP flow.
+</Tip>
+
+## Response
+
+<ResponseField name="status" type="boolean">
+  `true` when the refresh succeeds.
+</ResponseField>
+
+<ResponseField name="data" type="object">
+  <Expandable title="properties">
+    <ResponseField name="sessionToken" type="string">
+      New JWT token for authenticating future requests. Replace the old token immediately.
+    </ResponseField>
+    <ResponseField name="solanaAddress" type="string">
+      The agent's Solana wallet address.
+    </ResponseField>
+    <ResponseField name="email" type="string">
+      The agent's email address.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Errors
+
+| Status | Description |
+|--------|-------------|
+| `401` | Token is missing, invalid, or already expired |
+| `429` | Rate limit exceeded |
+
+<RequestExample>
+```bash cURL
+curl -X POST https://api.useknot.xyz/connect/refresh \
+  -H "Authorization: Bearer <token>"
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200
+{
+  "status": true,
+  "data": {
+    "sessionToken": "eyJhbGciOiJIUzI1NiIs...",
+    "solanaAddress": "7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU",
+    "email": "agent@example.com"
+  }
+}
+```
+</ResponseExample>
