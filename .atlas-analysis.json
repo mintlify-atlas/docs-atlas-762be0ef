@@ -1,0 +1,108 @@
+{
+  "projectType": "api-service",
+  "projectName": "Knot Wallet",
+  "projectDescription": "Server-side Solana wallet infrastructure for AI agents, enabling autonomous fund management, transaction signing, and DeFi protocol interaction via a REST API.",
+  "theme": "sequoia",
+  "primaryColor": "#cb0404",
+  "lightColor": "#f3d2d2",
+  "darkColor": "#e37b84",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Getting Started",
+            "pages": ["introduction", "quickstart", "architecture"]
+          },
+          {
+            "group": "Core Features",
+            "pages": ["transfers", "trading", "liquidity", "predictions"]
+          },
+          {
+            "group": "Security & Policies",
+            "pages": ["policies", "security"]
+          },
+          {
+            "group": "Advanced",
+            "pages": [
+              "errors",
+              "idempotency",
+              "webhooks",
+              "skill-discovery",
+              "best-practices",
+              "glossary"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Overview",
+            "pages": ["api-reference/introduction"]
+          },
+          {
+            "group": "Authentication",
+            "pages": [
+              "api-reference/auth/start",
+              "api-reference/auth/complete",
+              "api-reference/auth/validate",
+              "api-reference/auth/refresh"
+            ]
+          },
+          {
+            "group": "Wallet",
+            "pages": [
+              "api-reference/wallet/balances",
+              "api-reference/wallet/history",
+              "api-reference/wallet/transfer",
+              "api-reference/wallet/trade"
+            ]
+          },
+          {
+            "group": "Policy",
+            "pages": [
+              "api-reference/policy/view",
+              "api-reference/policy/update"
+            ]
+          },
+          {
+            "group": "Utility",
+            "pages": [
+              "api-reference/utility/health",
+              "api-reference/utility/tokens",
+              "api-reference/utility/skill"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Passwordless email OTP authentication with JWT token issuance",
+    "Trusted Execution Environment (TEE) for private key isolation",
+    "Action-based REST API for semantic transaction execution",
+    "Configurable policy engine with spending limits, daily caps, and recipient whitelists",
+    "Native DeFi integrations: Jupiter (trading), Meteora (liquidity), Kalshi (predictions)",
+    "Idempotency support to prevent duplicate financial transactions",
+    "Machine-readable skill discovery endpoint for AI agent auto-discovery",
+    "Immutable audit logging with USD-normalized transaction amounts"
+  ],
+  "publicApiSurface": [
+    "POST /connect/start — initiate email OTP authentication",
+    "POST /connect/complete — complete OTP and receive JWT + wallet address",
+    "POST /connect/validate — validate an existing JWT token",
+    "POST /connect/refresh — refresh an expiring JWT token",
+    "GET /wallets/me/balances — retrieve SOL and SPL token balances",
+    "GET /wallets/me/history — retrieve transaction history",
+    "POST /wallets/me/actions/transfer-solana — transfer SOL",
+    "POST /wallets/me/actions/trade — swap tokens via Jupiter",
+    "GET /wallets/me/policy — view current agent policy",
+    "PATCH /wallets/me/policy — update agent policy",
+    "GET /health — service health check",
+    "GET /tokens — list supported tokens",
+    "GET /skill.md — machine-readable skill discovery for AI agents"
+  ]
+}
